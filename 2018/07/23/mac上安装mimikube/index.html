@@ -1,0 +1,102 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="一个都不能少"><title>mac上安装minikube及排错记 | 把问题都记下来</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">mac上安装minikube及排错记</h1><a id="logo" href="/.">把问题都记下来</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">mac上安装minikube及排错记</h1><div class="post-meta">Jul 23, 2018</div><div class="post-content"><p>1.安装kubernetes-cli：</p>
+<blockquote>
+<p>brew install keubernetes-cli</p>
+</blockquote>
+<p>2.安装minikube</p>
+<blockquote>
+<p>brew cask install minikube</p>
+</blockquote>
+<p>3.安装其它依赖工具，如docker for mac、virtualbox等，因为以前就装过所以不记命令了</p>
+<a id="more"></a>
+<p>4.启动minukube</p>
+<blockquote>
+<p>minikube start</p>
+</blockquote>
+<p>然后问题来了，它会卡在</p>
+<blockquote>
+<p>Starting cluster components…</p>
+</blockquote>
+<p>这时查看log</p>
+<blockquote>
+<p>minikube logs</p>
+</blockquote>
+<p>会显示大堆error:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Jul 23 06:15:30 minikube kubelet[2738]: E0723 06:15:30.994778 2738 pod_workers.go:186] Error syncing pod 3afaf06535cc3b85be93c31632b765da (&quot;kube-addon-manager-minikube_kube-system(3afaf06535cc3b85be93c31632b765da)&quot;), skipping: failed to &quot;CreatePodSandbox&quot; for &quot;kube-addon-manager-minikube_kube-system(3afaf06535cc3b85be93c31632b765da)&quot; with CreatePodSandboxError: &quot;CreatePodSandbox for pod \&quot;kube-addon-manager-minikube_kube-system(3afaf06535cc3b85be93c31632b765da)\&quot; failed: rpc error: code = Unknown desc = failed pulling image \&quot;k8s.gcr.io/pause-amd64:3.1\&quot;: Error response from daemon: Get https://k8s.gcr.io/v2/: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)&quot; </span><br><span class="line">Jul 23 06:15:31 minikube kubelet[2738]: E0723 06:15:31.005991 2738 remote_runtime.go:92] RunPodSandbox from runtime service failed: rpc error: code = Unknown desc = failed pulling image &quot;k8s.gcr.io/pause-amd64:3.1&quot;: Error response from daemon: Get https://k8s.gcr.io/v2/: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) </span><br><span class="line">Jul 23 06:15:31 minikube kubelet[2738]: E0723 06:15:31.006091 2738 kuberuntime_sandbox.go:54] CreatePodSandbox for pod &quot;etcd-minikube_kube-system(6ea1c8f36a099856b01bf7d16652758c)&quot; failed: rpc error: code = Unknown desc = failed pulling image &quot;k8s.gcr.io/pause-amd64:3.1&quot;: Error response from daemon: Get https://k8s.gcr.io/v2/: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) </span><br><span class="line">Jul 23 06:15:31 minikube kubelet[2738]: E0723 06:15:31.006160 2738 kuberuntime_manager.go:646] createPodSandbox for pod &quot;etcd-minikube_kube-system(6ea1c8f36a099856b01bf7d16652758c)&quot; failed: rpc error: code = Unknown desc = failed pulling image &quot;k8s.gcr.io/pause-amd64:3.1&quot;: Error response from daemon: Get https://k8s.gcr.io/v2/: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers) </span><br><span class="line">Jul 23 06:15:31 minikube kubelet[2738]: E0723 06:15:31.006250 2738 pod_workers.go:186] Error syncing pod 6ea1c8f36a099856b01bf7d16652758c (&quot;etcd-minikube_kube-system(6ea1c8f36a099856b01bf7d16652758c)&quot;), skipping: failed to &quot;CreatePodSandbox&quot; for &quot;etcd-minikube_kube-system(6ea1c8f36a099856b01bf7d16652758c)&quot; with CreatePodSandboxError: &quot;CreatePodSandbox for pod \&quot;etcd-minikube_kube-system(6ea1c8f36a099856b01bf7d16652758c)\&quot; failed: rpc error: code = Unknown desc = failed pulling image \&quot;k8s.gcr.io/pause-amd64:3.1\&quot;: Error response from daemon: Get https://k8s.gcr.io/v2/: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)&quot; </span><br><span class="line">Jul 23 06:15:31 minikube kubelet[2738]: I0723 06:15:31.410180 2738 kubelet_node_status.go:271] Setting node annotation to enable volume controller attach/detach </span><br><span class="line">Jul 23 06:15:31 minikube kubelet[2738]: I0723 06:15:31.412318 2738 kubelet_node_status.go:82] Attempting to register node minikube </span><br><span class="line">Jul 23 06:15:31 minikube kubelet[2738]: E0723 06:15:31.412572 2738 kubelet_node_status.go:106] Unable to register node &quot;minikube&quot; with API server: Post https://localhost:8443/api/v1/nodes: dial tcp 127.0.0.1:8443: getsockopt: connection refused </span><br><span class="line">Jul 23 06:15:31 minikube kubelet[2738]: E0723 06:15:31.655753 2738 reflector.go:205] k8s.io/kubernetes/pkg/kubelet/config/apiserver.go:47: Failed to list *v1.Pod: Get https://localhost:8443/api/v1/pods?fieldSelector=spec.nodeName%3Dminikube&amp;limit=500&amp;resourceVersion=0: dial tcp 127.0.0.1:8443: getsockopt: connection refused</span><br></pre></td></tr></table></figure>
+<p>乍一看有点摸不着头脑，还以为它自己有问题，连不上自己的api服务器<br>
+但是看到<code>pulling image XXX Error</code>之类的提示后，立即意识到这可能是网络问题，需要的image没有被拉下来，相应功能自然启动不了</p>
+<p>所谓网络问题，其实就是被墙了，k8s.gcr.io浏览器也打不开</p>
+<p>开上代理再运行，</p>
+<blockquote>
+<p>http_proxy=XXX https_proxy=XXX minikube start</p>
+</blockquote>
+<p>会发现还是卡在这里，仍然是这个报错<br>
+有些不解，试试手动来拉这个image</p>
+<blockquote>
+<p>http_proxy=XXX https_proxy=XXX docker pull <a href="http://k8s.gcr.io/pause-amd64:3.1" target="_blank" rel="noopener">k8s.gcr.io/pause-amd64:3.1</a></p>
+</blockquote>
+<p>却又是没问题的，很快就拉下来了！<br>
+而且如果用<code>docker images</code>查看当前已有的images，这个pause-amd64:3.1也赫然在列，既然本地都有了，为何还要再去下载呢？</p>
+<p>不禁陷入深思，一顿搜索之后，猛然醒悟：</p>
+<h1>minikube的逻辑是创建一个vm，在这个vm里去运行k8s需要的各种docker image</h1>
+<p>所以：<br>
+1、我们在命令行上添加的http_proxy变量，只是影响当前命令本身，不可能使在vm里执行的其它命令也走代理。<br>
+2、在主机上运行的<code>docker images</code>查看的只是主机上已下载的images，并不是vm里的，vm里启动的docker自然还要再去下载</p>
+<p>想通了原因，那么首先做个测试，</p>
+<blockquote>
+<p>minikube ssh</p>
+</blockquote>
+<p>进到vm里，然后修改<code>/etc/systemd/system/docker.service.d/http-proxy.conf</code>这个文件：</p>
+<blockquote>
+<p>[Service]<br>
+Environment=“HTTP_PROXY=https://proxy.example.com:443/”<br>
+Environment=“HTTPS_PROXY=https://proxy.example.com:443/”</p>
+</blockquote>
+<p>重新启动docker daemon：</p>
+<blockquote>
+<p>$ sudo systemctl daemon-reload<br>
+$ sudo systemctl restart docker</p>
+</blockquote>
+<p>这时可以发现代理的流量监测已经噌噌地往上冒，达到几MB/s<br>
+说明vm内的docker已经开始连上gcr在下载image了！<br>
+等它下载完，主机上卡住的minikube start命令也顺利过去了，<br>
+最终minikube也正常启动起来了，以下命令打开web控件面板：</p>
+<blockquote>
+<p>minikube dashboard</p>
+</blockquote>
+<br>
+## 后记：
+虽然通过手动修改vm中的docker配置文件设置了代理，但毕竟繁琐，如果minikube重装（或是换参数重启了），vm似乎都被重置，这个过程又要手动做一遍！
+其实在minikube本来就有一个命令行参数来设置新建的vm中docker所属环境变量：
+>$ minikube start \-\-docker-env HTTP_PROXY=${http_proxy} \-\-docker-env HTTPS_PROXY=${https_proxy} \-\-docker-env NO_PROXY=192.168.99.0/24
+<p>这样新建出来的vm，它的docker配置文件里就自带了这些环境变量，可以ssh进去查看，也可以用相关命令直接显示：</p>
+<blockquote>
+<p>minikube ssh – systemctl show docker -–property=Environment --no-pager</p>
+</blockquote>
+<p>另外，如果要给容器内的程序设置代理，可在docker run中指定参数</p>
+<blockquote>
+<p>docker container run <br>
+-e HTTP_PROXY=http://username:password@proxy2.domain.com <br>
+-e HTTPS_PROXY=http://username:password@proxy2.domain.com <br>
+myimage</p>
+</blockquote>
+<br>
+## 再记：
+问题刚出现的时候着`Starting cluster components`这句话到处搜，特别是github的issue上，却得到很多误导的答案
+比如什么加选项--bootstrapper=localkube，甚至--vm-driver=hyperkit等等，也许当时某个版本是有这类问题并且表现出相同的错误信息
+但那些问题不一定就是自己碰到的问题，最终解决问题还是去看log，分析一下实际出错的环节，再加以一些排除法测试手段。
+<br>
+## 关联知识
+1. systemctl是一套新的linux服务程序管理工具，从最早的/etc/init.d到service，现在又到了systemctl了，是时候补充学习一下了。
+2. 参考：https://docs.docker.com/config/daemon/systemd/#httphttps-proxy
+3. 参考：https://stackoverflow.com/questions/43728355/kubernetes-pods-not-starting-running-bind-the-proxy/43757872#43757872
+4. 参考：https://stackoverflow.com/questions/47827496/how-to-configure-docker-container-proxy</div><div class="tags"><a href="/tags/docker/">docker</a><a href="/tags/minikube/">minikube</a><a href="/tags/k8s/">k8s</a></div><div class="post-nav"><a class="pre" href="/2018/07/24/docker非基本但常用的指令/">docker非基本但常用的指令</a><a class="next" href="/2018/03/12/first/">第一篇 记录下这个博客怎么搭出来的</a></div><div id="container"></div><link rel="stylesheet" href="/css/default.css?v=0.0.0"><script src="/js/gitment.browser.js?v=0.0.0"></script><script>var gitment = new Gitment({
+  id: 'mac上安装minikube及排错记' ,
+  owner: 'fatfatson',
+  repo: 'fatfatson.github.io',
+  oauth: {
+    client_id: '21dfc5a25075513e4074',
+    client_secret: 'f135caea0f4ced4bde6859f57e2537e9c239fd25',
+  },
+})
+gitment.render('container')
+</script></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://fatfatson.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/docker/" style="font-size: 15px;">docker</a> <a href="/tags/docker-machine/" style="font-size: 15px;">docker machine</a> <a href="/tags/openssl/" style="font-size: 15px;">openssl</a> <a href="/tags/blog/" style="font-size: 15px;">blog</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/gitment/" style="font-size: 15px;">gitment</a> <a href="/tags/minikube/" style="font-size: 15px;">minikube</a> <a href="/tags/k8s/" style="font-size: 15px;">k8s</a> <a href="/tags/exsi/" style="font-size: 15px;">exsi</a> <a href="/tags/vsphere/" style="font-size: 15px;">vsphere</a> <a href="/tags/coreos/" style="font-size: 15px;">coreos</a> <a href="/tags/maven/" style="font-size: 15px;">maven</a> <a href="/tags/grpc/" style="font-size: 15px;">grpc</a> <a href="/tags/kotlin/" style="font-size: 15px;">kotlin</a> <a href="/tags/mvc/" style="font-size: 15px;">mvc</a> <a href="/tags/mvp/" style="font-size: 15px;">mvp</a> <a href="/tags/mvvm/" style="font-size: 15px;">mvvm</a> <a href="/tags/tmux/" style="font-size: 15px;">tmux</a> <a href="/tags/shell/" style="font-size: 15px;">shell</a> <a href="/tags/ca/" style="font-size: 15px;">ca</a> <a href="/tags/cert/" style="font-size: 15px;">cert</a> <a href="/tags/sign/" style="font-size: 15px;">sign</a> <a href="/tags/wsl/" style="font-size: 15px;">wsl</a> <a href="/tags/win10/" style="font-size: 15px;">win10</a> <a href="/tags/nodejs/" style="font-size: 15px;">nodejs</a> <a href="/tags/samba/" style="font-size: 15px;">samba</a> <a href="/tags/xcode/" style="font-size: 15px;">xcode</a> <a href="/tags/xamarin/" style="font-size: 15px;">xamarin</a> <a href="/tags/hackintosh/" style="font-size: 15px;">hackintosh</a> <a href="/tags/yaml/" style="font-size: 15px;">yaml</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/一个莫名其妙的yml-lint问题排查/">hexo换render加emoji兼排查一个莫名其妙的vscode-yml-lint问题</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/gitment的两个问题备忘/">gitment的两个问题备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/给xcode10-2装上iossdk13-2/">给xcode10.2装上iossdk13.2</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/tmux内联使用方法/">tmux内联使用方法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/maven的基本用法备忘/">maven的基本用法备忘，以及grpc-kotlin-gen的改造</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/07/26/wsl/">wsl的更新和升级</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/14/偌大的nodejs竟然没有支持显示httpupload进度的库/">偌大的nodejs竟然没有支持显示httpupload进度的库</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/30/typescript编译选项对输出目录结构的影响/">typescript编译选项对输出目录结构的影响</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/19/install-exsi/">install exsi & coreos</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/14/使用samba-docker的一点小经验/">使用samba docker的一点小经验</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">把问题都记下来.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script><script src="/js/hexo_resize_image.js?v=0.0.0"></script></div></body></html>

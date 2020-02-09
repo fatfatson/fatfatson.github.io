@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="一个都不能少"><title>typescript编译选项对输出目录结构的影响 | 把问题都记下来</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">typescript编译选项对输出目录结构的影响</h1><a id="logo" href="/.">把问题都记下来</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">typescript编译选项对输出目录结构的影响</h1><div class="post-meta">Mar 30, 2019</div><div class="post-content"><p>typescript工程编译后的输出结构之灵活多变一直是个困扰我的难题，这次通过多种试验终于搞清了基本原理：</p>
+<a id="more"></a>
+<h2 id="源目录结构：">源目录结构：</h2>
+<pre>
+app|
+   |dist
+   |src
+     |app.ts
+   |srcjs
+     |lib.js
+   |node_modules
+   |tsconfig.json
+</pre>
+<h4 id="如果-js-文件最终“参与”编译，那么输出结构：">如果 js 文件最终“参与”编译，那么输出结构：</h4>
+<pre>
+app|
+   |dist
+     |src
+       |app.js
+     |srcjs
+       |lib.js
+</pre>
+<p>参与的条件为<code>设置了 allowJs</code>, 而与<code>ts 文件中实际用到 js与否</code>无关。（注意后文的扩充修正）</p>
+<h4 id="如果-js-文件未参与，那么">如果 js 文件未参与，那么</h4>
+<pre>
+app|
+   |dist
+     |app.js
+</pre>
+<p>以上两种结构，lib.js 相对于 app.js(编译后)的路径都一样，所以只要 app.ts 中是以</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">require(&apos;../srcjs/lib&apos;)</span><br></pre></td></tr></table></figure>
+<p>即相对路径的形式来引用 lib，实际运行都能正确引入。</p>
+<p>但是，如果参与编译的 ts 目录有多个，必然会在 dist 下形成相应的子目录结构<br>
+此时若 allowJs 为 false，那么 lib.js 相对于 app.js 的路径就与源码结构不一样了（多了一级子目录）<br>
+需要小心处理</p>
+<br>
+## 对于多 ts 目录的情况
+<p>一般会在 tsconfig.include 中设置：<br>
+如果没有设，那么默认就是 app 目录内的所有文件，此时 js 文件是否包括就看 allowJs 是否为 true;<br>
+如果设置了，那么就只编译指定的目录，此时又有几种特殊情况：<br>
+1、如果实际上只有一个 ts 目录内有文件，最终生成的 dist 里就没有子目录结构，而是与那个唯一的 ts 目录直接对应<br>
+2、如果 include 中并没有指定 js 目录，那么即使 allowJs 为 true 也不会编译 js，若此时只有一个 ts 目录，也会导致与 1 相同情况<br>
+<s>3、即不管什么原因，只要最终生成的 js 文件都属同一子目录，就会导致 dist 下无子目录结构</s><span style="color:red">(注：只在没设 rootDir 的前提下成立，下面详解)</span></p>
+<br>
+## 其它选项的影响
+<p>参考：<a href="https://www.typescriptlang.org/docs/handbook/compiler-options.html" target="_blank" rel="noopener">https://www.typescriptlang.org/docs/handbook/compiler-options.html</a></p>
+<blockquote>
+<p>“sourceRoot”: “./”, /_ Specify the location where debugger should locate TypeScript files instead of source locations. <em>/<br>
+“outFile”: “./”, /</em> Concatenate and emit output to single file. <em>/<br>
+“outDir”: “./”, /</em> Redirect output structure to the directory. <em>/<br>
+“rootDir”: “./”, /</em> Specify the root directory of input files. Use to control the output directory structure with --outDir. <em>/<br>
+“rootDirs”: [], /</em> List of root folders whose combined content represents the structure of the project at runtime. _/</p>
+</blockquote>
+<h4 id="sourceRoot-仅仅影响调试器对源码的定位，与编译无关">sourceRoot 仅仅影响调试器对源码的定位，与编译无关</h4>
+<h4 id="rootDir-最大的变数">rootDir 最大的变数</h4>
+<p>真正决定哪些文件参与编译的是 include，而 rootDir 只起到调节输出目录结构的作用</p>
+<h6 id="测试一：如果不为当前目录，有别的用处吗？-设为某一-ts-子目录，此时">测试一：如果不为当前目录，有别的用处吗？ 设为某一 ts 子目录，此时:</h6>
+<ol>
+<li>include 中有其它目录(或未设则默认所有子目录），报错： 编译的文件不在 rootDir 中，但实际编译还是完成了，生成文件以 include 为准</li>
+<li>include 中也只有该目录，如果编译成功的话，在 dist 下生成该目录下所有子目录（不论各子目录是否有文件）</li>
+</ol>
+<div style="background-color:rgba(0, 0, 0, 0.2); margin:10px 10px 10px 80px; padding:20px">关于2的一点曲折
+　　由于一开始只随便复制了几个简单的源文件到该测试目录，结果报错：所有 node_modules 中的 import 都找不到，如全删除只留一个 console.log 会报 console 都找不到，提示`target library`问题，即`compilerOptions.lib`；但将所有源文件复制进来后反而能编译通过。
+　　经过无比繁琐的逐步删除对比检验，发现问题出在这里：是否有一个 node_modules 库包含了下面这句话，如果有的话就能编译过
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">/// &lt;reference types=&quot;node&quot; /&gt;</span><br></pre></td></tr></table></figure>
+<p>根据搜索得知这是一个<code>3斜杠</code>编译指令，起到告知编译器引入类型的作用<br>
+参考：<a href="https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html" target="_blank" rel="noopener">https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html</a><br>
+细节：</p>
+<ol>
+<li>该指令在哪个文件中不重要，只要参与编译的任何一个文件（不管是 ts 还是 node_modules 下面的 js）有这句话就行</li>
+<li>必须在文件的头部，即所有代码之前才有效</li>
+</ol>
+</div>
+<h6 id="测试二：设-为当前目录-与不设，对-dist-目录却有影响：">测试二：设(为当前目录)与不设，对 dist 目录却有影响：</h6>
+<p>上一段提到的第 3 条，仅在 rootDir 不设时生效。若 rootDir=’.’，那么 dist 下一定呈现子目录结构（哪怕只有一个）</p>
+<h6 id="测试三：以下目录结构">测试三：以下目录结构</h6>
+<pre>
+project
+   |dist
+   |itest
+     |xxx
+       |xx.ts
+     |yyy
+       |yy.ts
+   |src
+     |app.ts
+   |srcjs
+     |lib.js
+   |node_modules
+   |tsconfig.json
+</pre>
+<p>设<code>include=['itest/xxx']</code><br>
+若 <code>rootDir不设</code>: dist 下会直接出现 xx.js，即以输出文件所属<code>最深同根目录</code>来动态判定，因为只有 xx.ts 被编译，所以直接生成到 dist 下面；如果此时 include 中还有 itest/yyy，那么 dist 下就会有 xxx 和 yyy，而同根目录 itest 被去掉。<br>
+若 <code>rootDir=itest</code>: 显式指定后，无论 yyy 是否参与(include)，dist 下都会有 xxx，而不是 xx.js 直接出现；<br>
+若<code>rootDir=.</code>: 也是显式指定，但<code>同根目录</code>更上了一层，所以哪怕即使只有 xx.js 输出，dist 下也是 itest/xxx/xx.js</p>
+<h4 id="rootDirs-可能是最难理解的一个">rootDirs 可能是最难理解的一个</h4>
+<p>意义是定义<code>虚拟目录结构</code>，作用是把<code>不同目录层次下的源文件</code>“看成”是<code>同一次层次的</code><br>
+但是这个转换仅仅影响<code>编译时</code>对类型的导入，完全不影响<code>输出目录结构</code><br>
+举例：</p>
+<pre>
+project
+   |dist
+   |itest
+     |xxx
+       |xx.ts
+     |yyy
+       |ppp
+         |p.ts
+       |yy.ts
+   |src
+     |app.ts
+   |srcjs
+     |lib.js
+   |node_modules
+   |tsconfig.json
+</pre>
+<p>若 xx.ts 中有</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">import p from &apos;./p&apos;;</span><br></pre></td></tr></table></figure>
+<p>按一般设置，这个 p 肯定是找不到的，因为与 xx.ts 不在一个目录下。<br>
+但是若设置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rootDirs:[&apos;itest/xxx&apos;,&apos;itest/yyy/ppp&apos;]</span><br></pre></td></tr></table></figure>
+<p>那么<code>编译时</code>就神奇的通过了，因为编译器被通知这两个目录下的文件可以看作在同一目录里！<br>
+但是—— 在 dist 里，p.js 并没有被移到 xxx 下面，xx.js 中对 p 的 require 也并没有被调整！ 要想运行时不出错，需要自己去调整输出目录结构！<br>
+另外：<br>
+1、这里 p 必须是相对路径<br>
+2、相对的程度与 rootDirs 中对应，如那边是<code>itest/yyy/ppp</code>的话这边就<code>./p</code>，如那边是<code>itest/yyy</code>则这边就要<code>./ppp/p</code>，总之凑起来要拼出正确的路径</p>
+</div><div class="tags"></div><div class="post-nav"><a class="pre" href="/2019/05/14/偌大的nodejs竟然没有支持显示httpupload进度的库/">偌大的nodejs竟然没有支持显示httpupload进度的库</a><a class="next" href="/2018/08/19/install-exsi/">install exsi &amp; coreos</a></div><div id="container"></div><link rel="stylesheet" href="/css/default.css?v=0.0.0"><script src="/js/gitment.browser.js?v=0.0.0"></script><script>var gitment = new Gitment({
+  id: 'typescript编译选项对输出目录结构的影响' ,
+  owner: 'fatfatson',
+  repo: 'fatfatson.github.io',
+  oauth: {
+    client_id: '21dfc5a25075513e4074',
+    client_secret: 'f135caea0f4ced4bde6859f57e2537e9c239fd25',
+  },
+})
+gitment.render('container')
+</script></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://fatfatson.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/docker/" style="font-size: 15px;">docker</a> <a href="/tags/docker-machine/" style="font-size: 15px;">docker machine</a> <a href="/tags/openssl/" style="font-size: 15px;">openssl</a> <a href="/tags/blog/" style="font-size: 15px;">blog</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/gitment/" style="font-size: 15px;">gitment</a> <a href="/tags/minikube/" style="font-size: 15px;">minikube</a> <a href="/tags/k8s/" style="font-size: 15px;">k8s</a> <a href="/tags/exsi/" style="font-size: 15px;">exsi</a> <a href="/tags/vsphere/" style="font-size: 15px;">vsphere</a> <a href="/tags/coreos/" style="font-size: 15px;">coreos</a> <a href="/tags/maven/" style="font-size: 15px;">maven</a> <a href="/tags/grpc/" style="font-size: 15px;">grpc</a> <a href="/tags/kotlin/" style="font-size: 15px;">kotlin</a> <a href="/tags/mvc/" style="font-size: 15px;">mvc</a> <a href="/tags/mvp/" style="font-size: 15px;">mvp</a> <a href="/tags/mvvm/" style="font-size: 15px;">mvvm</a> <a href="/tags/tmux/" style="font-size: 15px;">tmux</a> <a href="/tags/shell/" style="font-size: 15px;">shell</a> <a href="/tags/ca/" style="font-size: 15px;">ca</a> <a href="/tags/cert/" style="font-size: 15px;">cert</a> <a href="/tags/sign/" style="font-size: 15px;">sign</a> <a href="/tags/wsl/" style="font-size: 15px;">wsl</a> <a href="/tags/win10/" style="font-size: 15px;">win10</a> <a href="/tags/nodejs/" style="font-size: 15px;">nodejs</a> <a href="/tags/samba/" style="font-size: 15px;">samba</a> <a href="/tags/xcode/" style="font-size: 15px;">xcode</a> <a href="/tags/xamarin/" style="font-size: 15px;">xamarin</a> <a href="/tags/hackintosh/" style="font-size: 15px;">hackintosh</a> <a href="/tags/yaml/" style="font-size: 15px;">yaml</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/一个莫名其妙的yml-lint问题排查/">hexo换render加emoji兼排查一个莫名其妙的vscode-yml-lint问题</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/gitment的两个问题备忘/">gitment的两个问题备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/给xcode10-2装上iossdk13-2/">给xcode10.2装上iossdk13.2</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/tmux内联使用方法/">tmux内联使用方法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/maven的基本用法备忘/">maven的基本用法备忘，以及grpc-kotlin-gen的改造</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/07/26/wsl/">wsl的更新和升级</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/14/偌大的nodejs竟然没有支持显示httpupload进度的库/">偌大的nodejs竟然没有支持显示httpupload进度的库</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/30/typescript编译选项对输出目录结构的影响/">typescript编译选项对输出目录结构的影响</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/19/install-exsi/">install exsi & coreos</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/14/使用samba-docker的一点小经验/">使用samba docker的一点小经验</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">把问题都记下来.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script><script src="/js/hexo_resize_image.js?v=0.0.0"></script></div></body></html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="一个都不能少"><title>第一篇 记录下这个博客怎么搭出来的 | 把问题都记下来</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">第一篇 记录下这个博客怎么搭出来的</h1><a id="logo" href="/.">把问题都记下来</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">第一篇 记录下这个博客怎么搭出来的</h1><div class="post-meta">Mar 12, 2018</div><div class="post-content"><br>
+## 在繁琐的细节记录之前，先一句话总结：
+首先看到的是github-pages自带支持的jekyll，在摸索试验了大半天基本成功之时，又意外发现原来还有更好的替代品hexo。。
+<br>
+## hexo好在哪里？
+1.它是用nodejs写的，js嘛地球人都会，便于理解修改，而jekyll用的是ruby，出点问题怎么办想改都找不到地方。。
+>注：后面果然印证了这句话，从css改到js，甚至包括connect插件的bug，要不是会javascript，早就吊死了……
+<p>2.默认支持分页分类和标签，而jekyll不友好（听说的）</p>
+<a id="more"></a>
+<br>
+## 静态博客站有什么好处？
+全静态文件，性能高，同时没代码也就意味没漏洞，所以才有平台愿意免费托管吧？
+<p>当然这并不是说回到了web上古时代，真的要一个页面一个页面地去敲每一行html代码，所谓的静态文件实际是自动构建生成的，用于发布到线上。线下编辑生成仍然充斥着大量的<code>模板</code>、<code>变量</code>替换过程，相当于把本该由web程序做的动态转换变成了离线生成。</p>
+<p>简单来看一篇文章生成过程就是：</p>
+<ol>
+<li>新建一个文件，使用markdown语法书写内容，同时在头部元数据区指定它所用到的html模板及相关参数</li>
+<li>工具自动将该文件转化成最终html页面，这过程中包含加载模板、变量替换、markdown解析转换</li>
+<li>除了文章页之外，还会提取分类标签等参数生成其它的索引页面</li>
+</ol>
+<p>那么就有一个问题，线上页面全是静态的，如果需要评论之类的交互功能怎么办呢？目前只能是通过嵌入第三方评论系统来解决。其它类似需求也一样，思路就是“我只做静态的，动态的交给别人”，当然这也只适用于评论这类不重要的数据，如果做交易下单之类的操作就很难实现了，那还是用回php吧。</p>
+<br>
+## jekyll碰到的问题
+- ruby安装。在win10上可以直接用ubuntu子系统，linux下安装使用命令行工具方便得多，ruby也有一个rvm管理脚本，类似nodejs的nvm。
+- gem包通过代理安装，不像其它工具可以通过`http-proxy/https-proxy`环境变量来指定代理，它需要指定`--http-proxy=<url>`参数来配置。
+- jekyll的发布。如果是自己搭服务器，那么必然先build，生成最终的静态文件目录，这个过程中包含把所用主题theme的相关文件复制、替换处理，最后上传最终的目录到web服务器。但是因为github-pages内置了对jekyll的支持，所以我们甚至不需要自己build，只要把源文件提交，github就会自己在后台跑jekyll build，并将生成的静态文件发布到对应url也就是`<username>.github.io。`
+- jekyll的主题theme。常规的用法，主题都是通过gem安装，与一般的gem包无异，在本地build的时候，会从gem的包目录
+<br>
+## hexo碰到的问题
+1. 因为是nodejs写的，环境配置方面就比jekyll省事多了。但是因为非github-pages支持的框架，我们必须手动build(通过`hexo generate`)后再发布(通过`hexo deploy`)，其中发布有好几种方式如git、rsync、sftp等。
+2. 关于主题theme：一般去网上找一个别人写好的主题（比如这个主题yilla），用git subtree的方式添进来放到themes目录下，这样自己可以按需要调整，也可以随时获取更新（虽然我拉下来就再没更新过）。
+<br>
+### 2018.7.4补充
+有时某个文章里用到一些素材，如js文件，按规矩也会放到source/_posts/下，但js文件竟会被hexo默认也当作一篇文章来发布，这显然非我所愿。解决办法是去配置文件_config.yml里添加：
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">skip_render:</span></span><br><span class="line">  <span class="bullet">-</span> <span class="string">'**/*.js'</span></span><br></pre></td></tr></table></figure>
+<p>注意，加完后即使重启<code>hexo server</code>也没效，还得先<code>hexo clean</code>一下！</p>
+<h3 id="2018-7-30补充">2018.7.30补充</h3>
+<p>** 添加gitment功能： **<br>
+按照教程流程走一遍，基本都顺利，但最后初始化评论的时候会报<code>Error: Validation Failed</code>错误，这是issue的id长度超限了，默认使用title做id，中文title很容易超限，改成使用创建时间做id就行了。修改<code>layout/_partial/post/gitment.ejs</code>里相应字段就好。然后，浏览器缓存要清空一下，不然导致一直失败，其实已经创建了多个issues…… 感谢<a href="https://sjq597.github.io/2018/05/18/Hexo-%E4%BD%BF%E7%94%A8Gitment%E8%AF%84%E8%AE%BA%E5%8A%9F%E8%83%BD/" target="_blank" rel="noopener">LittleQ</a>指出。<br>
+另外，这个功能只能在正式服务器上测，在本地是测不了的，因为创建程序时填的回调地址是正式服地址，如果登录后跳转的不是正式服就登录不了。</p>
+<h3 id="2018-8-15补充">2018.8.15补充</h3>
+<p>** 使用browsersync插件实时预览 **<br>
+插件是个好插件，装好后，这边md文件一保存，那边网页就会自动刷新了，跟webpack live load效果差不多。<br>
+但是这插件用到的第三方库却有个bug，导致太长的中文网页会出错，很明显这一定就是编码错误了。<br>
+跟踪调试了半天，找到定位如下：</p>
+<figure class="highlight patch"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">--- connect-injector.js 2016-06-04 13:31:30.000000000 +0800</span></span><br><span class="line"><span class="comment">+++ connect-injector2.js        2018-08-15 10:11:28.147725400 +0800</span></span><br><span class="line"><span class="meta">@@ -89,7 +89,7 @@</span></span><br><span class="line">             this._interceptBuffer = new WritableStream();</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line"><span class="deletion">-          return this._interceptBuffer.write(chunk, encoding);</span></span><br><span class="line"><span class="addition">+          return this._interceptBuffer.write(new Buffer(chunk, encoding||'utf8'));</span></span><br><span class="line">         &#125;</span><br><span class="line"></span><br><span class="line">         return this._super.apply(this, arguments);</span><br></pre></td></tr></table></figure>
+<p>当我跟踪到这里时，发现encoding为空，实际上应该为utf8；但是即使为空，默认也应该按utf8处理。然而从结果来看并不是，所以非ascii长字符串被截断了。把它改成显式用utf8就好了。</p>
+<h3 id="2019-3-31补充">2019.3.31补充</h3>
+<p>又到了主题调整时间，起因是gitment插件出问题了，因为其自己做了一个接口页面来搞登录验证（github issue)，结果它这个页面的https域名证书过期，导致脚本里对它的访问报错……</p>
+<blockquote>
+<p>[object ProgressEvent]<br>
+gh-oauth.imsun.net链接不上</p>
+</blockquote>
+<p>但是现在一看主题代码，有点完全摸不着头绪，竟不知道各目录文件为何用？<br>
+只好再次硬着头皮翻阅一遍，整理一份理解如下，以免下次要改又忘了：</p>
+<ol>
+<li><code>hexo g</code>的作用将source/_post下的<code>数据</code>与theme下的<code>外观</code>合并渲染，得到public目录，也就是最终要发布的静态html站</li>
+<li>theme下的外观即layout目录，里面都是ejs文件，即hexo所用nodejs引擎的渲染模板文件，其内<br>
+用<code>&lt;% %&gt;</code>来引用数据，<br>
+用<code>&lt;%- js(xxx) %&gt;</code>来引用source目录下的js文件<br>
+用<code>&lt;%- css(xxx) %&gt;</code>来引用source目录下的css/styl文件</li>
+<li>theme下的source目录是控制样式和脚本的大头，它本身又可以是一个webpack工程的输出</li>
+<li>所以从头到尾的生产流程是：<br>
+source-src -&gt; source, 这是webpack编译结果<br>
+(layout+source)+(data) -&gt; public, 这是hexo(ejs)编译的结果</li>
+<li>一般来说改页面布局: 先从layout/layout.ejs开始，它里面各种partical/include，根据页面类型找到具体对应的ejs文件，这里面可以改html标记；</li>
+<li>如果改html还不满足，要改js：首先通过ejs分析要改的js函数名，去source-src找到这个函数修改后，运行webpack，自动更新source里的文件；切记不要直接改source（通常是紧凑化的js文件一般也没法看和改了）。</li>
+</ol>
+<p>好了回到正题，记录这次gitment出错的改法：</p>
+<ol>
+<li>首先通过全文搜索gitment这个关键字，找到调用此功能的代码在yilla/layout/_partial/post/gitment.ejs里</li>
+<li>它直接引用了imsun.github.io下的js文件来实现此功能，点进这个文件里去看，果然找到了对过期域名的访问代码</li>
+<li>但是它这个文件本身也已经是webpack输出的合并文件了没法修改，难道要把它的源码拉下来自己改自己编？那就太麻烦了，也许直接拉下这个文件把那一句代码替换掉然后塞进自己的网站里作内部引用就行了，但总归有点硬来，也许有问题的地方并不只这一句呢？需要找找其它人是否已经有改好的版本。</li>
+<li>果然找到了：<a href="https://github.com/imsun/gitment/issues/175#issuecomment-473955148%EF%BC%8C%E5%9C%A8%E6%AD%A4%E8%A1%A8%E7%A4%BA%E6%84%9F%E8%B0%A2%EF%BC%81" target="_blank" rel="noopener">https://github.com/imsun/gitment/issues/175#issuecomment-473955148，在此表示感谢！</a></li>
+<li>所以，最终只要把gitment.ejs里的link和script引用换成上贴中给出的新地址即可。<code>hexo g &amp;&amp; hexo d</code>发布搞定！</li>
+</ol>
+</username></url></div><div class="tags"><a href="/tags/blog/">blog</a><a href="/tags/hexo/">hexo</a></div><div class="post-nav"><a class="pre" href="/2018/07/23/mac上安装mimikube/">mac上安装minikube及排错记</a></div><div id="container"></div><link rel="stylesheet" href="/css/default.css?v=0.0.0"><script src="/js/gitment.browser.js?v=0.0.0"></script><script>var gitment = new Gitment({
+  id: '第一篇 记录下这个博客怎么搭出来的' ,
+  owner: 'fatfatson',
+  repo: 'fatfatson.github.io',
+  oauth: {
+    client_id: '21dfc5a25075513e4074',
+    client_secret: 'f135caea0f4ced4bde6859f57e2537e9c239fd25',
+  },
+})
+gitment.render('container')
+</script></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://fatfatson.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/docker/" style="font-size: 15px;">docker</a> <a href="/tags/docker-machine/" style="font-size: 15px;">docker machine</a> <a href="/tags/openssl/" style="font-size: 15px;">openssl</a> <a href="/tags/blog/" style="font-size: 15px;">blog</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/gitment/" style="font-size: 15px;">gitment</a> <a href="/tags/minikube/" style="font-size: 15px;">minikube</a> <a href="/tags/k8s/" style="font-size: 15px;">k8s</a> <a href="/tags/exsi/" style="font-size: 15px;">exsi</a> <a href="/tags/vsphere/" style="font-size: 15px;">vsphere</a> <a href="/tags/coreos/" style="font-size: 15px;">coreos</a> <a href="/tags/maven/" style="font-size: 15px;">maven</a> <a href="/tags/grpc/" style="font-size: 15px;">grpc</a> <a href="/tags/kotlin/" style="font-size: 15px;">kotlin</a> <a href="/tags/mvc/" style="font-size: 15px;">mvc</a> <a href="/tags/mvp/" style="font-size: 15px;">mvp</a> <a href="/tags/mvvm/" style="font-size: 15px;">mvvm</a> <a href="/tags/tmux/" style="font-size: 15px;">tmux</a> <a href="/tags/shell/" style="font-size: 15px;">shell</a> <a href="/tags/ca/" style="font-size: 15px;">ca</a> <a href="/tags/cert/" style="font-size: 15px;">cert</a> <a href="/tags/sign/" style="font-size: 15px;">sign</a> <a href="/tags/wsl/" style="font-size: 15px;">wsl</a> <a href="/tags/win10/" style="font-size: 15px;">win10</a> <a href="/tags/nodejs/" style="font-size: 15px;">nodejs</a> <a href="/tags/samba/" style="font-size: 15px;">samba</a> <a href="/tags/xcode/" style="font-size: 15px;">xcode</a> <a href="/tags/xamarin/" style="font-size: 15px;">xamarin</a> <a href="/tags/hackintosh/" style="font-size: 15px;">hackintosh</a> <a href="/tags/yaml/" style="font-size: 15px;">yaml</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/一个莫名其妙的yml-lint问题排查/">hexo换render加emoji兼排查一个莫名其妙的vscode-yml-lint问题</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/gitment的两个问题备忘/">gitment的两个问题备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/给xcode10-2装上iossdk13-2/">给xcode10.2装上iossdk13.2</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/tmux内联使用方法/">tmux内联使用方法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/maven的基本用法备忘/">maven的基本用法备忘，以及grpc-kotlin-gen的改造</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/07/26/wsl/">wsl的更新和升级</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/14/偌大的nodejs竟然没有支持显示httpupload进度的库/">偌大的nodejs竟然没有支持显示httpupload进度的库</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/30/typescript编译选项对输出目录结构的影响/">typescript编译选项对输出目录结构的影响</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/19/install-exsi/">install exsi & coreos</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/14/使用samba-docker的一点小经验/">使用samba docker的一点小经验</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">把问题都记下来.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script><script src="/js/hexo_resize_image.js?v=0.0.0"></script></div></body></html>

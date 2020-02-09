@@ -1,0 +1,158 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="一个都不能少"><title>openssl走一轮CA证书签发的过程和各个文件作用 | 把问题都记下来</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">openssl走一轮CA证书签发的过程和各个文件作用</h1><a id="logo" href="/.">把问题都记下来</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">openssl走一轮CA证书签发的过程和各个文件作用</h1><div class="post-meta">Jul 27, 2018</div><div class="post-content"><br>
+## CA对服务器公钥签名的意义是什么？
+<p>1.服务器公钥，公之于众，对客户端而言，可让客户端判断，与之通信者，是不是此公钥的持有人</p>
+<p>2.但是假若客户端的目标是安全连接一个叫jd.com的网站，当与该网站server连接时，应该用哪个公钥去验证对方呢？<br>
+实际上这个公钥本身还是服务器发过来的，用服务器发来的公钥去验证它自己，顶多能证明确实是在与该server通信（server没有被人吊包，或者中间人窃听）<br>
+却不能证明该server是目标网站jd.com的合法代表（有可能在dns层就被拦截了，连上的server根本就不在真正的jd.com上运行）</p>
+<blockquote>
+<p>公钥本身只证明「你是你」，并不能说明「你是谁」</p>
+</blockquote>
+<a id="more"></a>
+<p>3.因此，<a href="http://xn--jd-tz2cslz1dv4go6h5tl2hb85i1vop3lgycg88f8om8g1ayx0b.com" target="_blank" rel="noopener">服务器为了让客户端相信自己就是jd.com</a>，它给过来的信息，除自身公钥外，还包含一段CA的签名，该签名的内容就是：<a href="http://xn--jd-bf3c49gptem8jmr8apoc182eyrprx5a.com" target="_blank" rel="noopener">此公钥能够合法代表jd.com</a>。</p>
+<blockquote>
+<p>CA签名的本质就是把一个公钥和一个域名关联起来，解决「你是谁」的问题</p>
+</blockquote>
+<p>因此，只要相信CA，那server是jd.com的问题就解决了，但怎么证明这段话确实是CA签署的呢？<br>
+因为CA的公钥也是公开的，只要拿CA的公钥解开一看是这句话，那就确实是CA签的了。<br>
+但是再追问下去，所谓『CA的公钥』就能代表CA吗？这一来似乎循环论证了，又回到了「你是谁」的问题。</p>
+<blockquote>
+<p>CA自身的身份问题成迷，变成了「他可以证明你是谁，但谁能证明他是谁」</p>
+</blockquote>
+<p>4.这种身份追问总要有个结束，必须得有一个源头，那就是根CA。根CA的公钥一般直接内置在软件里，所以这就相当于说：<br>
+『只要这个公钥说的话我都无条件相信』。<br>
+那么根CA说某个CA1是可信的，CA1又说『<a href="http://xn--jd-xz4cl10fs1bs38i.com" target="_blank" rel="noopener">某公钥是jd.com</a>』自然也就可信了，而当server能出示CA1这句话时，这个server也就可信了</p>
+<p>5.一个补充<br>
+CA1说『<a href="http://xn--jd-xz4cl10fs1bs38i.com" target="_blank" rel="noopener">某公钥是jd.com</a>』这句话，会不会被一个假的server盗去用呢？毕竟当它去连接真server时，对方就会把这句话发过来，然后假server转手拿去自己用行不行？<br>
+当然不行！客户端也不傻，假server就算把这句话盗发过来了，这话里说的『某公钥』，跟当前通信正在用的公钥又不一样，这种张冠李戴的行为，就已经自暴作假了。<br>
+那么，假服务器在盗发时能否修改呢？</p>
+<p>将当前通信公钥换成跟CA1签的那句话中的公钥一样？<br>
+——那就完全没法通信了，因为假服务器根本就没有那个公钥对应的私钥，直接就对不上暗号。</p>
+<p>将CA1说的那句话篡改一下，将其中的「某公钥」换成自己的？<br>
+——那就签不了名了，因为签名需要CA1的私钥，客户端对签名信息只会用CA1的公钥去解码，解不出东西的话就等于没签名。</p>
+<br>
+## 用openssl生成CA、服务器公私钥、客户端公私钥，验证一次流程
+**一、生成CA的私钥：**
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">$ openssl genrsa -aes256 -out ca-key.pem 4096</span><br><span class="line">Generating RSA private key, 4096 bit long modulus</span><br><span class="line">...++</span><br><span class="line">.........................................................++</span><br><span class="line">e is 65537 (0x10001)</span><br><span class="line">Enter pass phrase for ca-key.pem:</span><br></pre></td></tr></table></figure>
+<p>因为CA比较重要，它的秘钥长度可以大一点，安全性更高。另外<code>-aes256</code>选项会要求输入私钥保护密码，私钥本身以密文保存。执行后当前目录下得到<a href="ca-key.pem">ca-key.pem</a>文件。</p>
+<blockquote>
+<p>-----BEGIN RSA PRIVATE KEY-----<br>
+Proc-Type: 4,ENCRYPTED<br>
+DEK-Info: AES-256-CBC,BB750AAD0581709AA01F69DED6F20799<br>
+　<br>
+FQbArYkY5r36XQwDF49QYBCCGJEnrCs55IgjNoeL2NiTVTW6Wr48WYkpiaKz74TM<br>
+Y+G2rJv1tjDgY2Z3HUfbtzz2MuyPkLUcNM6o5jh4HHxZbyO8Jn7wkUhfY5EIuWXr<br>
+8tCnLXMv/87XyB3w5LwY8rHPFlDkjVVcWhGoHNT8p6XQDvi+Q1TnvTClsUoE6trd<br>
+…<br>
+…<br>
+-----END RSA PRIVATE KEY-----</p>
+</blockquote>
+<p>这是一个有密码保护的私匙，要对它解密的话，仍然可以用openssl来：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">$ openssl rsa -in ca-key.pem -out ca.key</span><br><span class="line">Enter pass phrase for ca-key.pem:</span><br><span class="line">writing RSA key</span><br></pre></td></tr></table></figure>
+<p>得到一个裸私钥<a href="ca.key">ca.key</a>：</p>
+<blockquote>
+<p>-----BEGIN RSA PRIVATE KEY-----<br>
+MIIJJwIBAAKCAgEAryD0GyW6o8+Ii0pKqdG5ElUI3ivkMQyEv02zpY00ctK8g8At<br>
+EEYBJx3g4qQHs/QQlQAfvfEHaSF9nSW3W8wDwqinkzvYeY9CKqDXMbsHXqbaTYYY<br>
+…<br>
+…<br>
+hD2MstogMwyM/gLzB56vZ1j7iZFDym0Y/C6cxXQd7aEMCGSqAidKYdrPoGY+hhwu<br>
+9TZR4Zpw+1ig0cSgqS4TaCD4dJm1YPJ3ArwXmWiDwr0jpxWDj2cbNWukzA==<br>
+-----END RSA PRIVATE KEY-----</p>
+</blockquote>
+<p>两个文件的头部标识也可见出差别。<br>
+有一个问题：RSA密钥都是一对，可这里只生成了私钥，那公钥在哪呢？<br>
+实际上公钥是根据私钥生成的，由于RSA非对称特性，私钥算出公钥很容易，公钥算出私钥就很难。生成公钥的指令为：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl rsa -in ca.key -pubout -out ca.pub</span><br></pre></td></tr></table></figure>
+<br>
+**二、生成CA的证书：**
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -subj &apos;/&apos; -out ca.pem</span><br></pre></td></tr></table></figure>
+<p>其实从『证明是谁』的角度来说，这个证书是没什么意义的，因为参数里只提供了CA的私钥（当然也就包括了公钥），却没有说这个公钥是谁，比如说是哪个公司？拥有哪个域名？(<code>-subj</code>用来指定这些信息，在下面生成服务器证书时再详述)<br>
+　　但是因为我们本来就是把它当作根CA来用，根CA证书是直接内嵌到软件里的，属于无条件信任范畴，所以『它是谁』已经不重要了。重要的是：<br>
+　　1、当我们去验证一个普通证书的时候，验证的就是它的签名方是不是根CA，也就是说用这个根CA公钥去解码签名信息，所以有公钥就够了<br>
+　　2、那为什么还要生成证书文件呢，直接拿ca.pub去用不就好啦？这应该只是openssl这个库的设计风格吧，比如涉及证书验证这一系列的函数，相关参数类型就是证书对象或文件（而不是公钥），所以如不弄个ca.pem出来，函数都没法调用。（这句纯粹猜测，待看过代码后再来订正）。</p>
+<p><strong>三、生成服务器的公私钥：</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl genrsa -out server-key.pem 4096</span><br></pre></td></tr></table></figure>
+<p><strong>四、生成服务器的证书：</strong><br>
+　　这一步就是最关键的地方了！<br>
+　　首先，要获得证书，必须先向CA申请证书，生成一个请求：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl req -subj &quot;/CN=$HOST/O=xjhdish&quot; -sha256 -new -key server-key.pem -out server.csr</span><br></pre></td></tr></table></figure>
+<p>这里的<code>CN=$HOST</code>则是关键之关键，$HOST应换成实际的域名。<br>
+　　前文说过，所谓证书就是<code>把一个公钥和一个域名关联起来</code>，当然这主要是指web服务器用到的ssl证书，因为web服务器需要证明的就是自己对某个域名的拥有权。但除了域名，证书也可以证明其它领域内的身份，完全取决于对应的客户端软件到底要验证它哪一方面。 <code>-subj</code>这个参数就是用来指定各种身份字段的，一个完整的参数例子为：</p>
+<blockquote>
+<p>-subj “/C=US/ST=Utah/L=Lehi/O=Your Company, Inc./OU=IT/CN=<a href="http://yourdomain.com" target="_blank" rel="noopener">yourdomain.com</a>”</p>
+</blockquote>
+<p>这些/C、/ST都是缩写，全称及含义可见此<a href="https://www.digicert.com/ssl-support/openssl-quick-reference-guide.htm#CreatingYourCSR" target="_blank" rel="noopener">参考文档</a>。这当中最重要的就是/CN了，它的值就是域名，对浏览器而言检查一个https网站是否有效，就是看其证书里这个字段是不是等于当前正在访问的域名。 由于域名是如此的重要，在老版openssl里只用一个<code>-subj /CN</code>来设置还不够，为了支持一个证书签发多个域名甚至IP，在X.509v3里又引入了一个叫<code>Subject Alternative Name</code>的扩展。 这个扩展的详细解释可见<a href="https://www.openssl.org/docs/manmaster/man5/x509v3_config.html#Subject-Alternative-Name" target="_blank" rel="noopener">参考</a>，例子如下：</p>
+<blockquote>
+<p>subjectAltName=email:copy,email:my@other.address,URI:<a href="http://my.url.here/" target="_blank" rel="noopener">http://my.url.here/</a>,<br>
+IP:192.168.7.1,<br>
+IP:13::17,<br>
+email:my@other.address,RID:1.2.3.4,<br>
+otherName:1.2.3.4;UTF8:some other identifier,<br>
+dirName:dir_sect<br>
+[dir_sect]<br>
+C=UK<br>
+O=My Organization<br>
+OU=My Unit<br>
+CN=My Name</p>
+</blockquote>
+<p>在使用方式上，一般将上述内容写在一个文件里如<code>extfile.cnf</code>，然后将之用在最终签署请求的命令行中：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extfile extfile.cnf</span><br><span class="line">Signature ok</span><br><span class="line">subject=/CN=your.host.com</span><br><span class="line">Getting CA Private Key</span><br><span class="line">Enter pass phrase for ca-key.pem:</span><br></pre></td></tr></table></figure>
+<p>签名需要：CA的证书，这用来宣示此服务器证书是谁签的；CA的私钥，这用来生成摘要保证签名内容不被篡改。因为用到了私钥，所以会提示输入保护密码。这样生成的server-cert.pem文件，就是最终的服务器证书了，这个证书里包含了：<br>
+1、服务器的公钥（你是你）。<br>
+2、服务器的身份（你是谁），有/CN、subjectAltName[email/IP]等各种字段，具体在哪种场合下验证哪一个，就是客户端软件的事了。</p>
+<p><strong>五、生成客户端的私钥和证书</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">$ openssl genrsa -out client-key.pem 1024</span><br><span class="line">$ openssl req -subj &quot;/CN=client&quot; -sha256 -new -key client-key.pem -out client.csr\</span><br><span class="line">    -reqexts SAN -config &lt;(cat /etc/ssl/openssl.cnf &lt;(printf &quot;\n[SAN]\nsubjectAltName=DNS:example.com,DNS:www.example.com\nextendedKeyUsage=clientAuth&quot;))</span><br><span class="line">$ openssl x509 -req -days 365 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem</span><br></pre></td></tr></table></figure>
+<p>和服务器差不多，也是生成密钥-&gt;创建申请-&gt;签发证书。<br>
+　　因为是客户端证书，Subject和SAN要填哪些信息应视实际用处（也就是将要验证该客户端的服务器程序）而定。这里使用了一个小技巧，即创建请求时，将SAN信息直接写在命令行上，省去了额外创建一个文件的麻烦。另外，除了SAN还添加了另一个x509扩展<code>extendedKeyUsage</code>，它用来提示此证书的目的，我们现在是用来做客户端证书，因此写上clientAuth。可以用命令检查这个请求，确认已包含了需要的信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl req -in client.csr -text -noout</span><br></pre></td></tr></table></figure>
+<br>
+**六、现在对这些文件做一个总结**
+　　看起来好像做了很多步生成了很多文件，但其实就两种文件，一是密钥，一是证书（csr是中间文件一旦证书生成就不需要了），只不过CA、服务器、客户端各有一组而已。私钥是保密的，所以key.pem文件是不能分发的，可以生成单独的公钥文件发布，但使用证书文件更好，因为证书里不仅包含公钥，还提供了该公钥的身份信息以咨校验。另外，即使在签署时什么身份信息都没填，至少也能表达『这是某CA`鉴定`过的人』这一层意思，对某些应用来说并不需要知道对方是何种身份，只要知道它被特定CA`鉴定`过即可，比如docker服务器对客户端的验证即是如此。
+　　从使用角度说，证书里最关键的信息就是CN和SAN字段，对一个已有证书，可通过如下命令查看：
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl x509 -in server-cert.pem -noout -text</span><br></pre></td></tr></table></figure>
+<p>下面的输出信息里，显示出与之前提交时一样的Subject和SAN信息</p>
+<pre>
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            de:b0:87:e7:50:cf:08:1c
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer:
+        Validity
+            Not Before: Jul 29 23:48:39 2018 GMT
+            Not After : Jul 29 23:48:39 2019 GMT
+        <span style="color:red">Subject: CN=192.168.199.126, O=xjhdish</span>
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+            RSA Public Key: (4096 bit)
+                Modulus (4096 bit):
+                    00:ab:15:4f:82:1f:78:85:0f:ab:64:4b:ad:90:b7:
+                    ...
+                    ae:6a:e5
+                Exponent: 65537 (0x10001)
+        X509v3 extensions:
+        <span style="color:red">X509v3 Subject Alternative Name:
+                email:my@other.address, URI:http://my.url.here/, IP Address:192.168.7.1, IP Address:13:0:0:0:0:0:0:17, email:my@other.address, Registered ID:1.2.3.4, othername:<unsupported>, DirName:/C=UK/O=My Organization/OU=My Unit/CN=My Name</unsupported></span>
+    Signature Algorithm: sha256WithRSAEncryption
+        75:c9:34:75:34:b8:fa:35:3d:55:54:83:01:fa:63:05:b0:37:
+        ...
+</pre>
+<p>另外一个常见需求就是将pem格式证书和私钥一起打包成一个pfx(或p12)文件，导入到windows或macos上的软件里去用，这通常是客户端证书，如chrome里安装个人证书用来登录一些严格控制权限的网站。命令如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ openssl pkcs12 -export -name &quot;你的XX证书（或者其它友好名字，一般显示在软件里）&quot;  -out client.pfx -inkey client-key.pem -in client-cert.pem</span><br></pre></td></tr></table></figure>
+<p>参考：<br>
+<a href="https://serverfault.com/questions/9708/what-is-a-pem-file-and-how-does-it-differ-from-other-openssl-generated-key-file" target="_blank" rel="noopener">https://serverfault.com/questions/9708/what-is-a-pem-file-and-how-does-it-differ-from-other-openssl-generated-key-file</a><br>
+<a href="https://docs.docker.com/engine/security/https/#create-a-ca-server-and-client-keys-with-openssl" target="_blank" rel="noopener">https://docs.docker.com/engine/security/https/#create-a-ca-server-and-client-keys-with-openssl</a><br>
+<a href="https://www.openssl.org/docs/manmaster/man5/x509v3_config.html#Subject-Alternative-Name" target="_blank" rel="noopener">https://www.openssl.org/docs/manmaster/man5/x509v3_config.html#Subject-Alternative-Name</a><br>
+<a href="https://www.sslshopper.com/article-most-common-openssl-commands.html" target="_blank" rel="noopener">https://www.sslshopper.com/article-most-common-openssl-commands.html</a></p>
+</div><div class="tags"><a href="/tags/openssl/">openssl</a><a href="/tags/ca/">ca</a><a href="/tags/cert/">cert</a><a href="/tags/sign/">sign</a></div><div class="post-nav"><a class="pre" href="/2018/08/08/使用child-process时注意环境变量/">使用child_process时注意环境变量</a><a class="next" href="/2018/07/25/dockermachine概念理解/">docker machine概念理解</a></div><div id="container"></div><link rel="stylesheet" href="/css/default.css?v=0.0.0"><script src="/js/gitment.browser.js?v=0.0.0"></script><script>var gitment = new Gitment({
+  id: 'openssl走一轮CA证书签发的过程和各个文件作用' ,
+  owner: 'fatfatson',
+  repo: 'fatfatson.github.io',
+  oauth: {
+    client_id: '21dfc5a25075513e4074',
+    client_secret: 'f135caea0f4ced4bde6859f57e2537e9c239fd25',
+  },
+})
+gitment.render('container')
+</script></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://fatfatson.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/docker/" style="font-size: 15px;">docker</a> <a href="/tags/docker-machine/" style="font-size: 15px;">docker machine</a> <a href="/tags/openssl/" style="font-size: 15px;">openssl</a> <a href="/tags/blog/" style="font-size: 15px;">blog</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/gitment/" style="font-size: 15px;">gitment</a> <a href="/tags/minikube/" style="font-size: 15px;">minikube</a> <a href="/tags/k8s/" style="font-size: 15px;">k8s</a> <a href="/tags/exsi/" style="font-size: 15px;">exsi</a> <a href="/tags/vsphere/" style="font-size: 15px;">vsphere</a> <a href="/tags/coreos/" style="font-size: 15px;">coreos</a> <a href="/tags/maven/" style="font-size: 15px;">maven</a> <a href="/tags/grpc/" style="font-size: 15px;">grpc</a> <a href="/tags/kotlin/" style="font-size: 15px;">kotlin</a> <a href="/tags/mvc/" style="font-size: 15px;">mvc</a> <a href="/tags/mvp/" style="font-size: 15px;">mvp</a> <a href="/tags/mvvm/" style="font-size: 15px;">mvvm</a> <a href="/tags/tmux/" style="font-size: 15px;">tmux</a> <a href="/tags/shell/" style="font-size: 15px;">shell</a> <a href="/tags/ca/" style="font-size: 15px;">ca</a> <a href="/tags/cert/" style="font-size: 15px;">cert</a> <a href="/tags/sign/" style="font-size: 15px;">sign</a> <a href="/tags/wsl/" style="font-size: 15px;">wsl</a> <a href="/tags/win10/" style="font-size: 15px;">win10</a> <a href="/tags/nodejs/" style="font-size: 15px;">nodejs</a> <a href="/tags/samba/" style="font-size: 15px;">samba</a> <a href="/tags/xcode/" style="font-size: 15px;">xcode</a> <a href="/tags/xamarin/" style="font-size: 15px;">xamarin</a> <a href="/tags/hackintosh/" style="font-size: 15px;">hackintosh</a> <a href="/tags/yaml/" style="font-size: 15px;">yaml</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/一个莫名其妙的yml-lint问题排查/">hexo换render加emoji兼排查一个莫名其妙的vscode-yml-lint问题</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/gitment的两个问题备忘/">gitment的两个问题备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/给xcode10-2装上iossdk13-2/">给xcode10.2装上iossdk13.2</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/tmux内联使用方法/">tmux内联使用方法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/maven的基本用法备忘/">maven的基本用法备忘，以及grpc-kotlin-gen的改造</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/07/26/wsl/">wsl的更新和升级</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/14/偌大的nodejs竟然没有支持显示httpupload进度的库/">偌大的nodejs竟然没有支持显示httpupload进度的库</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/30/typescript编译选项对输出目录结构的影响/">typescript编译选项对输出目录结构的影响</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/19/install-exsi/">install exsi & coreos</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/14/使用samba-docker的一点小经验/">使用samba docker的一点小经验</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">把问题都记下来.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script><script src="/js/hexo_resize_image.js?v=0.0.0"></script></div></body></html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="一个都不能少"><title>mvc/mvp/mvvm模式的一点比喻理解 | 把问题都记下来</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">mvc/mvp/mvvm模式的一点比喻理解</h1><a id="logo" href="/.">把问题都记下来</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">mvc/mvp/mvvm模式的一点比喻理解</h1><div class="post-meta">Jul 25, 2018</div><div class="post-content"><p>很久以前看到过一篇用饮水机和水桶来比喻RAID几种模式区别的贴子，对这种以日常生活实践来解释复杂专业概念的手法非常喜欢。<br>
+今天偶然看到对<a href="https://www.cnblogs.com/linusflow/p/7783870.html" target="_blank" rel="noopener">mvvm的讨论</a>，尤其是与mvc、mvp的比较，突然就想也找个生活例子来比喻，<br>
+于是就用人体的概念来类比一下。</p>
+<a id="more"></a>
+<h3 id="内脏、皮肤和大脑">内脏、皮肤和大脑</h3>
+<p><code>心肝脾肺</code>这些内脏各自承担人体相应机能，自身的负荷健康状态，可以认为是<code>M（数据）</code><br>
+<code>皮肤五官</code>，是人体最外层表象，体内一切东西本身触摸不到，但可以通过观察皮肤来了解内部状态，因此是<code>V（视图）</code>，至于皮肤下面的穴位，就当是按钮控件吧：）<br>
+<code>大脑</code>，是调度一切的中枢，自然就是<code>C（控制器）</code>了。</p>
+<p><code>M把数据显示在V上</code>: 各处皮肤可以反映不同脏器的状态，比如印堂发黑啦，月牙饱满啦，双眼无神啦，等等。<br>
+<code>在V上操作来改变M的状态</code>: 假设脾胃不好，按照中医理论，可以通过刮大拇指来按摩治疗，从而改变了器官的健康状态。</p>
+<h3 id="没有MVC的年代">没有MVC的年代</h3>
+<p>大拇指：『嘿，脾胃，把你的操作接口告诉我，如果有人顺着刮我，我就给你发变好的信号，如果有人倒着刮我，我就给你发变坏的信号！』<br>
+脾胃：『我这么重要的数据，你改错了怎么办！』<br>
+涌泉穴：『嘿，脾胃，我也要操作你噢，有人按我你就给我精神点。』<br>
+脾胃：『……』</p>
+<blockquote>
+<p>V可以直接操作M，特别是多个V都有自己的操作逻辑时，M的状态秩序无从保证，很快混乱到难以维护</p>
+</blockquote>
+<h3 id="MVC">MVC</h3>
+<p>大脑：『大拇指，别人怎么按你，你告诉我就行了，我会给脾胃发出对应的变更指令的。』<br>
+大拇指：『知道了，我不用再关注脾胃了，有事就找你。』</p>
+<blockquote>
+<p>MVC解决了V乱操作M的问题，对M的改变只能通过C进行</p>
+</blockquote>
+<p>大脑：『印堂，你作为主窗口，要时刻关注心脏、肾、脾胃的状态，把自己的颜色显示对噢！』<br>
+印堂：『我好累……』</p>
+<blockquote>
+<p>MVC的缺点：V直接从M获取信息，对M的依赖太大，很难重用</p>
+</blockquote>
+<h3 id="MVP">MVP</h3>
+<p>大脑：『我改了个名，现在叫P了。』<br>
+大伙：『那跟以前有什么区别吗？』<br>
+大脑：『是这样的，印堂，你也不用关注那么多器官了，你把你变颜色的接口告诉我，如果跟你相关的器官有问题，我会搞清楚你该变什么颜色，然后通知你变色的！』<br>
+印堂：『太好了，我早就不想理它们了。』</p>
+<blockquote>
+<p>MVP的变化：V不再直接从M获取信息并自己来改变外观，而是把改变外观的权力（调用接口）交给P，由P来负责计算何时改变、改变为何值，然后调用该接口来实现。</p>
+</blockquote>
+<p>大脑：『印堂，现在心脏缺氧，你赶快变成青色！』<br>
+大脑：『印堂，现在腰肾扭伤，你赶快变成黑色！』<br>
+大脑：『印堂，现在心肌紧张焦虑，你赶快凹陷一下！』<br>
+大脑：『面颊，现在火毒攻心，你赶快变红色！』<br>
+大脑：『眼睛，现在肾气不足，你赶快飞几只蚊子！』<br>
+大脑：『我好累……』</p>
+<blockquote>
+<p>MVP的缺点：逻辑都集中到P上，P要处理的事太多，而V减负过头。</p>
+</blockquote>
+<h3 id="MVVM">MVVM</h3>
+<p>大脑：『我又改名了，现在叫VM……』<br>
+大伙：『到底想怎样？』<br>
+大脑：『这样，印堂，以后你的颜色还是要你自己来获取，我不会每次都调你了，但是我会把最新的颜色放在进门左边第一个神经元里，你自己看到变了就来取。』<br>
+印堂：『那我就把这个神经元的值绑定到我的颜色属性上了。』<br>
+大脑：『面颊，眼睛，你们的XXX属性需要的YYY状态，我都放在第ZZZ个神经元上了，你们也自己来取。』<br>
+大伙：『知道了！』<br>
+大脑：『还有啊，眼睛，你刚才左眼闭了还是右眼闭了？记得把数据存在第KKK个神经元上，下次我好给你恢复！』<br>
+眼睛：『可以有。』<br>
+神经元：『给我一句台词行吗！那个叫Binder的就是我啦！』</p>
+<blockquote>
+<p>MVVM的变化：V的变化不再全部由P(现在换叫VM)发起，而是由V自己承担一部份，既不像MVC时代要关注那么多数据源（很累很臃肿），也不像MVP时代那么轻松（太瘦）。<br>
+而且对V来说，需要的状态不仅仅是M中的业务数据，也包括仅用于自身显示的UI状态，这些状态合在一起，存放在VM上的一个叫Binder的子对象里，大家适当分工，所有人都满意了。</p>
+</blockquote>
+</div><div class="tags"><a href="/tags/mvc/">mvc</a><a href="/tags/mvp/">mvp</a><a href="/tags/mvvm/">mvvm</a></div><div class="post-nav"><a class="pre" href="/2018/07/25/dockermachine概念理解/">docker machine概念理解</a><a class="next" href="/2018/07/24/docker非基本但常用的指令/">docker非基本但常用的指令</a></div><div id="container"></div><link rel="stylesheet" href="/css/default.css?v=0.0.0"><script src="/js/gitment.browser.js?v=0.0.0"></script><script>var gitment = new Gitment({
+  id: 'mvc/mvp/mvvm模式的一点比喻理解' ,
+  owner: 'fatfatson',
+  repo: 'fatfatson.github.io',
+  oauth: {
+    client_id: '21dfc5a25075513e4074',
+    client_secret: 'f135caea0f4ced4bde6859f57e2537e9c239fd25',
+  },
+})
+gitment.render('container')
+</script></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://fatfatson.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/docker/" style="font-size: 15px;">docker</a> <a href="/tags/docker-machine/" style="font-size: 15px;">docker machine</a> <a href="/tags/openssl/" style="font-size: 15px;">openssl</a> <a href="/tags/blog/" style="font-size: 15px;">blog</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/gitment/" style="font-size: 15px;">gitment</a> <a href="/tags/minikube/" style="font-size: 15px;">minikube</a> <a href="/tags/k8s/" style="font-size: 15px;">k8s</a> <a href="/tags/exsi/" style="font-size: 15px;">exsi</a> <a href="/tags/vsphere/" style="font-size: 15px;">vsphere</a> <a href="/tags/coreos/" style="font-size: 15px;">coreos</a> <a href="/tags/maven/" style="font-size: 15px;">maven</a> <a href="/tags/grpc/" style="font-size: 15px;">grpc</a> <a href="/tags/kotlin/" style="font-size: 15px;">kotlin</a> <a href="/tags/mvc/" style="font-size: 15px;">mvc</a> <a href="/tags/mvp/" style="font-size: 15px;">mvp</a> <a href="/tags/mvvm/" style="font-size: 15px;">mvvm</a> <a href="/tags/tmux/" style="font-size: 15px;">tmux</a> <a href="/tags/shell/" style="font-size: 15px;">shell</a> <a href="/tags/ca/" style="font-size: 15px;">ca</a> <a href="/tags/cert/" style="font-size: 15px;">cert</a> <a href="/tags/sign/" style="font-size: 15px;">sign</a> <a href="/tags/wsl/" style="font-size: 15px;">wsl</a> <a href="/tags/win10/" style="font-size: 15px;">win10</a> <a href="/tags/nodejs/" style="font-size: 15px;">nodejs</a> <a href="/tags/samba/" style="font-size: 15px;">samba</a> <a href="/tags/xcode/" style="font-size: 15px;">xcode</a> <a href="/tags/xamarin/" style="font-size: 15px;">xamarin</a> <a href="/tags/hackintosh/" style="font-size: 15px;">hackintosh</a> <a href="/tags/yaml/" style="font-size: 15px;">yaml</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/一个莫名其妙的yml-lint问题排查/">hexo换render加emoji兼排查一个莫名其妙的vscode-yml-lint问题</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/gitment的两个问题备忘/">gitment的两个问题备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/给xcode10-2装上iossdk13-2/">给xcode10.2装上iossdk13.2</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/tmux内联使用方法/">tmux内联使用方法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/maven的基本用法备忘/">maven的基本用法备忘，以及grpc-kotlin-gen的改造</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/07/26/wsl/">wsl的更新和升级</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/05/14/偌大的nodejs竟然没有支持显示httpupload进度的库/">偌大的nodejs竟然没有支持显示httpupload进度的库</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/03/30/typescript编译选项对输出目录结构的影响/">typescript编译选项对输出目录结构的影响</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/19/install-exsi/">install exsi & coreos</a></li><li class="post-list-item"><a class="post-list-link" href="/2018/08/14/使用samba-docker的一点小经验/">使用samba docker的一点小经验</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">把问题都记下来.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script><script src="/js/hexo_resize_image.js?v=0.0.0"></script></div></body></html>
