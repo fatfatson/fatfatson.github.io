@@ -1,9 +1,9 @@
 <!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="一个都不能少"><title>gitment的两个问题备忘 | 把问题都记下来</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">gitment的两个问题备忘</h1><a id="logo" href="/.">把问题都记下来</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">gitment的两个问题备忘</h1><div class="post-meta">Feb 8, 2020</div><div class="post-content"><p>换了个主题，果然gitment又出问题了，还好上次折腾时做了记录。这次没费多少力气就搞定。<br>
 再次整理如下：</p>
 <ol>
-<li>访问过期的https域名问题：<br>
-这是因为各大主题之前用的<code>gitment.browser.js</code>文件都是老的api地址：</li>
-</ol>
+<li>
+<p>访问过期的https域名问题：<br>
+这是因为各大主题之前用的<code>gitment.browser.js</code>文件都是老的api地址：</p>
 <blockquote>
 <p><a href="https://gh-oauth.imsun.net" target="_blank" rel="noopener">https://gh-oauth.imsun.net</a></p>
 </blockquote>
@@ -11,14 +11,17 @@
 <blockquote>
 <p><a href="https://cors-anywhere.herokuapp.com/https://github.com/login/oauth/access_token" target="_blank" rel="noopener">https://cors-anywhere.herokuapp.com/https://github.com/login/oauth/access_token</a></p>
 </blockquote>
-<pre><code>去`gitment.browser.js`文件中找到对应url替换掉即可。如果该文件没有放在源码中而是直接通过url引用的，那么也可以引用这个已经改好的文件：
-</code></pre>
+<p>去<code>gitment.browser.js</code>文件中找到对应url替换掉即可。如果该文件没有放在源码中而是直接通过url引用的，那么也可以引用这个已经改好的文件：</p>
 <blockquote>
 <p><a href="https://cdn.jsdelivr.net/gh/theme-next/theme-next-gitment@1/gitment.browser.js" target="_blank" rel="noopener">https://cdn.jsdelivr.net/gh/theme-next/theme-next-gitment@1/gitment.browser.js</a></p>
 </blockquote>
+</li>
+</ol>
 <br>
-2. 初始化评论（创建issue）失败的问题：
-这是`new Gitment`时id参数太长导致的，大部里主题里创建评论的代码如下：
+<ol start="2">
+<li>初始化评论（创建issue）失败的问题：<br>
+这是<code>new Gitment</code>时id参数太长导致的，大部里主题里创建评论的代码如下：</li>
+</ol>
 <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">var</span> gitment = <span class="keyword">new</span> Gitment(&#123;</span><br><span class="line">       id: <span class="built_in">window</span>.location.pathname.substring(<span class="number">1</span>,<span class="built_in">window</span>.location.pathname.length),</span><br><span class="line">       owner: <span class="string">'#&#123;theme.gitment.owner&#125;'</span>,</span><br><span class="line">       repo: <span class="string">'#&#123;theme.gitment.repo&#125;'</span>,</span><br><span class="line">       oauth: &#123;</span><br><span class="line">         client_id: <span class="string">'#&#123;theme.gitment.client_id&#125;'</span>,</span><br><span class="line">         client_secret: <span class="string">'#&#123;theme.gitment.client_secret&#125;'</span>,</span><br><span class="line">       &#125;,</span><br><span class="line">     &#125;)</span><br></pre></td></tr></table></figure>
 <p>id用location.pathname很容易超长，改成title就好很多了：</p>
  <figure class="highlight js"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">id: <span class="string">'#&#123;page.title&#125;'</span> ,</span><br></pre></td></tr></table></figure>
