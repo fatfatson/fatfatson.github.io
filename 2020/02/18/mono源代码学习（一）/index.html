@@ -1,0 +1,72 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="一个都不能少"><title>mono源代码学习（一） | 把问题都记下来</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">mono源代码学习（一）</h1><a id="logo" href="/.">把问题都记下来</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">mono源代码学习（一）</h1><div class="post-meta">Feb 18, 2020</div><div class="post-content"><p>由于最近都在写c#，对其底层实现产生了很大兴趣，所以计划把源码拉下来学习一番。 首先备忘一下环境搭建：</p>
+<h3 id="源代码">源代码</h3>
+<p>仓库：<a href="https://github.com/mono/mono.git" target="_blank" rel="noopener">https://github.com/mono/mono.git</a><br>
+其中submodule一堆，最好开挂拉，否则一天都拉不完。</p>
+<p>文档：<a href="https://www.mono-project.com/docs/" target="_blank" rel="noopener">https://www.mono-project.com/docs/</a></p>
+<p>.net assembly，也就是dll文件，或叫<code>cil模块</code>的格式定义：<br>
+<a href="https://docs.microsoft.com/en-us/dotnet/standard/assembly/file-format" target="_blank" rel="noopener">https://docs.microsoft.com/en-us/dotnet/standard/assembly/file-format</a><br>
+<a href="https://www.ecma-international.org/publications/standards/Ecma-335.htm" target="_blank" rel="noopener">https://www.ecma-international.org/publications/standards/Ecma-335.htm</a></p>
+<p>编译：传统的三件套<code>configure</code>、<code>make</code>、<code>make install</code><br>
+也可以按文档中所说，由于是从git source编译，第一步换成<code>autogen.sh</code>，其实差别不大，<code>autogen.sh</code>的结果就是生成<code>configure</code>并运行，但后者已经提交到仓库了直接使用也可。</p>
+<blockquote>
+<p>关于<code>autogen.sh</code>、<code>autoconf</code>、<code>automake</code>:<br>
+<a href="https://stackoverflow.com/questions/50044091/what-is-the-job-of-autogen-sh-when-building-a-c-package-on-linux" target="_blank" rel="noopener">https://stackoverflow.com/questions/50044091/what-is-the-job-of-autogen-sh-when-building-a-c-package-on-linux</a></p>
+</blockquote>
+<p>不过有一点注意：为了编译调试版（方便单步跟踪，否则行号会因为优化而不匹配），应该使用以下参数：<br>
+<code> ./configure CFLAGS=&quot;-g -O0&quot;</code></p>
+<p>还有一点就是<code>--prefix</code>选项，它会影响安装的位置，默认是在<code>/usr/local/[bin|lib]</code>，在linux上这也是预编译包的安装位置，所以如果自己编译测试用的最好重载该选项装到其它地方去<br>
+但是在mac上预编译安装都在<code>/Library/Framework</code>下面，所以也不怕冲突，就没有改了，因为改过之后运行程序还得设置<code>LD_LIBRARY_PATH</code>变量，有点麻烦。</p>
+<p>编译完之后的<code>mono</code>可执行程序在<code>mono/mini/mono</code>，如果不<code>make install</code>，直接运行它，会因为找不到各种运行时库而报错，至于怎么配置使它可以源码树中找，一时还没有发现好办法。因为光看Makefile中的安装过程，就有大量的建目录、复制文件等操作，这些应该都是约定好的结构甚至可能硬编码在代码里，只能以后慢慢学习了。</p>
+<h3 id="IDE">IDE</h3>
+<p>有了代码就要开始读，而且最好是边运行边读，通过不断修改测试一些小例子来观察运行流程。<br>
+首先<code>vscode</code>是可以调试走起的，但是基于语义的智能提示和跳转我还不知道怎么弄，众所周知，c/c++的工程是最灵活也是最麻烦的，因为根本就没有标准的工程文件，从make,qmake,cmake,scon到msbuild,xcodeproject之流，五花八门，基本上是个IDE就会搞一个自己的格式，但又不通用。而最通用的make又过于松散难以嵌入IDE中搭配GUI工作流。<br>
+mono的源码是通过make编译的，要让IDE通过理解makefile来实现智能提示是不太可能。但是要把这个makefile改成其它工程文件也是不会的 😰<br>
+一顿搜索后发现<code>Clion</code>这个好东西，跟之前用过的<code>AndroidStudio</code>、<code>Rider</code>是一家，顺便提下我心中的好IDE标准：</p>
+<ul>
+<li>各种面板切换、任务执行都有快捷键，且能自定义配置</li>
+<li>编辑器支持vim模式，可以切分</li>
+<li>集成终端</li>
+<li>有目录树或项目、工作区概念</li>
+<li>快速定位文件、查找符号</li>
+</ul>
+<p>以上是不论具体语言和开发目标，仅做为一个通用编辑器该有的功能，各语言相关的智能提示当然也是必须的。<code>jetbrain</code>系列IDE和<code>vscode</code>恰好都在这几方面做得够好，论细致体贴j家的更胜一筹，但vscode好在插件多可以同时兼顾好几种不同语言的混合项目开发。</p>
+<p>说回<code>Clion</code>。。。在使用中一些小技巧：</p>
+<h4 id="配置cmake项目，获得语义智能提示">配置cmake项目，获得语义智能提示</h4>
+<p>可以直接在gui上操作：<code>File</code>-&gt;<code>New CMake Project from Sources</code>，选择源码根目录，会生成一个巨大的<code>CMakeLists.txt</code>文件，其内只有一个executable类型的project，名字就是目录名，并将几乎所有子目录都做为include目录，所有c文件都做为源文件加进来。有了这个文件，Clion就大概知道要怎么构建项目，从中得到语义信息来做智能提示了。</p>
+<h4 id="配置custom-build-target，启用调试">配置<code>custom build target</code>，启用调试</h4>
+<p>上一步的副作用是自动添加一个CMake Application的<code>Run/Debug Configuration</code>，然而cmake除了提供一个<code>近似</code>的工程信息给Clion做语义分析外，并没有别的用处，这个自动生成的Configuration也不能build和run。为此，手动添加一个<code>custom build target</code>，其中<code>Target</code>需要再去专门的界面配置一番，<code>Executable</code>就选择外面make编译好的mono可执行文件，再把<code>Before launch</code>里的Build去掉，也就是IDE里只管读写源文件和调试，build去终端自己敲make。如此，就得到了一个可看可调的IDE，设断点、单步、检查变量，都可以像在vs里一样方便使用了~</p>
+<img src="/2020/02/18/mono源代码学习（一）/clion-ide.jpg">
+<h4 id="debugger里的小技巧">debugger里的小技巧</h4>
+<ul>
+<li>增加IDE可用内存，对于解析mono这么巨大的工程，需要更多内存以提升性能： <code>Help</code>-&gt;<code>Change Memory Settings</code></li>
+<li>以16进制查看数值变量：</li>
+</ul>
+<img src="/2020/02/18/mono源代码学习（一）/show-hex.jpg">
+<ul>
+<li>
+<p>以数组形式查看指针变量：</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">(MonoClassField(*)[3]) (klass-&gt;fields)</span><br></pre></td></tr></table></figure>
+<p>注意这个<code>*</code>号的奇怪位置，据说这是lldb的特殊语法。如果换成gdb，自己想办法挪着试吧😅</p>
+</li>
+<li>
+<p><code>set next statement</code>：IDE里没有提供这个功能，但是可以自己去<code>lldb console</code>里敲指令：</p>
+  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">j 行号</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<h4 id="希望解决的问题">希望解决的问题</h4>
+<ol>
+<li>能否写类似vs里的autoexp？对于复杂的容器数据类型自定义在watch窗口中的展开视图</li>
+<li>能否支持类似vs里的mixed调试，即native和managed代码都可以下断点、单步跟踪</li>
+<li>能否将mono的编译机制改为cmake，实现modify-build-debug一体化？</li>
+</ol>
+</div><div class="tags"></div><div class="post-nav"><a class="pre" href="/2020/02/18/macos上PATH环境变量的来源/">macos上PATH环境变量的来源</a><a class="next" href="/2020/02/15/C-里可空类型-Nullable-T-的特殊处理/">C#里可空类型(Nullable&lt;T&gt;)的特殊性</a></div><div id="container"></div><link rel="stylesheet" href="/css/default.css?v=0.0.0"><script src="/js/gitment.browser.js?v=0.0.0"></script><script>var gitment = new Gitment({
+  id: 'mono源代码学习（一）' ,
+  owner: 'fatfatson',
+  repo: 'fatfatson.github.io',
+  oauth: {
+    client_id: '21dfc5a25075513e4074',
+    client_secret: 'f135caea0f4ced4bde6859f57e2537e9c239fd25',
+  },
+})
+gitment.render('container')
+</script></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://fatfatson.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/docker/" style="font-size: 15px;">docker</a> <a href="/tags/docker-machine/" style="font-size: 15px;">docker machine</a> <a href="/tags/openssl/" style="font-size: 15px;">openssl</a> <a href="/tags/exsi/" style="font-size: 15px;">exsi</a> <a href="/tags/vsphere/" style="font-size: 15px;">vsphere</a> <a href="/tags/coreos/" style="font-size: 15px;">coreos</a> <a href="/tags/macos/" style="font-size: 15px;">macos</a> <a href="/tags/PATH/" style="font-size: 15px;">PATH</a> <a href="/tags/blog/" style="font-size: 15px;">blog</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/gitment/" style="font-size: 15px;">gitment</a> <a href="/tags/maven/" style="font-size: 15px;">maven</a> <a href="/tags/grpc/" style="font-size: 15px;">grpc</a> <a href="/tags/kotlin/" style="font-size: 15px;">kotlin</a> <a href="/tags/minikube/" style="font-size: 15px;">minikube</a> <a href="/tags/k8s/" style="font-size: 15px;">k8s</a> <a href="/tags/mvc/" style="font-size: 15px;">mvc</a> <a href="/tags/mvp/" style="font-size: 15px;">mvp</a> <a href="/tags/mvvm/" style="font-size: 15px;">mvvm</a> <a href="/tags/c/" style="font-size: 15px;">c#</a> <a href="/tags/mono/" style="font-size: 15px;">mono</a> <a href="/tags/xamarin/" style="font-size: 15px;">xamarin</a> <a href="/tags/gc/" style="font-size: 15px;">gc</a> <a href="/tags/tmux/" style="font-size: 15px;">tmux</a> <a href="/tags/shell/" style="font-size: 15px;">shell</a> <a href="/tags/ca/" style="font-size: 15px;">ca</a> <a href="/tags/cert/" style="font-size: 15px;">cert</a> <a href="/tags/sign/" style="font-size: 15px;">sign</a> <a href="/tags/nodejs/" style="font-size: 15px;">nodejs</a> <a href="/tags/yaml/" style="font-size: 15px;">yaml</a> <a href="/tags/wsl/" style="font-size: 15px;">wsl</a> <a href="/tags/win10/" style="font-size: 15px;">win10</a> <a href="/tags/xcode/" style="font-size: 15px;">xcode</a> <a href="/tags/hackintosh/" style="font-size: 15px;">hackintosh</a> <a href="/tags/samba/" style="font-size: 15px;">samba</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/02/18/macos上PATH环境变量的来源/">macos上PATH环境变量的来源</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/18/mono源代码学习（一）/">mono源代码学习（一）</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/15/C-里可空类型-Nullable-T-的特殊处理/">C#里可空类型(Nullable<t>)的特殊性</t></a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/11/mono和.net core在gc上的区别/">mono和.net core在gc上的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/一个莫名其妙的yml-lint问题排查/">hexo换render加emoji兼排查一个莫名其妙的vscode-yml-lint问题</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/gitment的两个问题备忘/">gitment的两个问题备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/给xcode10-2装上iossdk13-2/">给xcode10.2装上iossdk13.2</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/tmux内联使用方法/">tmux内联使用方法</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/maven的基本用法备忘/">maven的基本用法备忘，以及grpc-kotlin-gen的改造</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/07/26/wsl/">wsl的更新和升级</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">把问题都记下来.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script><script src="/js/hexo_resize_image.js?v=0.0.0"></script></div></body></html>
