@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta name="generator" content="Hexo 3.9.0"><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content="一个都不能少"><title>mono源代码学习（二） pe文件结构 | 把问题都记下来</title><link rel="stylesheet" type="text/css" href="/css/style.css?v=0.0.0"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/normalize/8.0.1/normalize.min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/pure-min.css"><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/pure/1.0.0/grids-responsive-min.css"><link rel="stylesheet" href="//lib.baomitu.com/font-awesome/4.7.0/css/font-awesome.min.css"><script type="text/javascript" src="//lib.baomitu.com/jquery/3.4.0/jquery.min.js"></script><link rel="icon" mask sizes="any" href="/favicon.ico"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/apple-touch-icon.png"><link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png"></head><body><div class="body_container"><div id="header"><div class="site-name"><h1 class="hidden">mono源代码学习（二） pe文件结构</h1><a id="logo" href="/.">把问题都记下来</a><p class="description"></p></div><div id="nav-menu"><a class="current" href="/."><i class="fa fa-home"> 首页</i></a><a href="/archives/"><i class="fa fa-archive"> 归档</i></a><a href="/about/"><i class="fa fa-user"> 关于</i></a></div></div><div class="pure-g" id="layout"><div class="pure-u-1 pure-u-md-3-4"><div class="content_container"><div class="post"><h1 class="post-title">mono源代码学习（二） pe文件结构</h1><div class="post-meta">Feb 25, 2020</div><div class="post-content"><p>处理数据是一切程序的本质，所以先从数据结构学起。<br>
+数据有两大类，一类是存放磁盘上的静态数据——文件，另一类是加载到内存中的动态数据。<br>
+.net程序以<code>assembly</code>为存储单位，以<code>domain</code>和<code>module</code>为运行单元。<br>
+一个<code>assembly</code>就是一个<code>dll/exe文件</code>，加载到内存后则是一个<code>module</code>，多个<code>module</code>彼此调用，共存于一个<code>domain</code>里。<br>
+<code>module</code>不只来源于加载磁盘上的文件，也可以在运行时动态创建（通过Emit IL Code），但是两者的格式结构是一样的。</p>
+<p>dll和exe文件，都是pe文件。其结构如下：</p>
+<img src="/2020/02/25/mono源代码学习（二）pe文件结构/peheader.jpg">
+<br>
+<p>几个归纳：</p>
+<ol>
+<li>
+<p>首先是<code>Dos header</code>，历史的遗留，不去深究了</p>
+</li>
+<li>
+<p>接着是<code>NT headers</code>，也就是<code>WindowsNT</code>及后续系统中的可执行文件头部，既然有个复数s，说明不只一个：</p>
+<ul>
+<li>
+<p><code>COFF header</code>：据说还是unix上的格式，现在unix不用了（改为elf），但windows却还用着 😂。这里面最重要就是两个<code>Number</code>：<code>NumberOfSections</code>和<code>SizeOfOptionalHeader</code>，前者记录了<code>Section</code>的个数，后者则（间接）记录了<code>Data Directory</code>的个数。</p>
+</li>
+<li>
+<p><code>Optional header</code>，也叫<code>PE header</code>：分为前面固定长度和后面可变长度两块，固定部份没啥好说的，都是些标识类、长度类字段，特别的是后面这个可变区域，叫<code>Data Directory</code>，是一个数组，每个元素两个DWORD：起始位置和长度。数组具体有多少个元素呢？并没有直接的表示，但是上面所说<code>SizeOfOptionalHeader</code>，却是整个这两块的大小，所以减去前面固定长度再除以8，就是元素的数量了。虽说这个是可变的，但我观察了好几个dll文件，发现都是16个。</p>
+</li>
+</ul>
+</li>
+<li>
+<p>再接着是<code>Section headers</code>，这里<code>Section</code>和<code>Data Directory</code>的概念有点迷糊，看起来它们都有多个，都是对数据分组分类存放的意思，那为什么会有两套体系呢？据我理解，<code>Data Directory</code>是按数据的逻辑用途来划分，如导入表、导出表、重定向表等等，而<code>Section</code>是按加载到内存后区域（页面）性质来划分，如<code>只读</code>、<code>可读可写</code>、<code>可执行</code>，两个不同的<code>Data Directory</code>如果在内存中具有相同的页面属性，那就可以合并到同一个<code>Section</code>里，所以通常<code>Section</code>不会太多（有的只3个），那怎么在已合并的<code>Section</code>中找到需要的某类逻辑信息呢？就是靠<code>Data Directory</code>表里记录的地址字段了！</p>
+</li>
+<li>
+<p>再接着是……没有了！因为没有规定再往后要按顺序接个啥了！虽然图中显示后面是<code>cli header</code>，但那不是规则，只是恰好显示在后面的解析结果而已……从它和前一项的地址之差也能看出来，它在0x208，而前一项也就是最后一个<code>Section</code>结束于0x1EC。</p>
+</li>
+<li>
+<p>操作系统在将PE文件加载到内存时，是以<code>Section</code>为单位来映射的，每个<code>Section</code>在文件中的位置、在内存中的位置都有定义，前者叫<code>PointToRawData</code>，后者叫<code>VirutalAddress</code>；而<code>Data Directory</code>里的<code>RVA</code>地址指的就是该数据段在内存中的位置（相对于起点）。这里就有引出个问题，如果我并没有用操作系统的API来加载该PE文件，只是自己在磁盘文件里找某个<code>Data Directory</code>，该怎么找？</p>
+<img src="/2020/02/25/mono源代码学习（二）pe文件结构/find.png">
+<p>比如上图所示。想找到文件中<code>cli header</code>的位置，首先根据<a href="https://docs.microsoft.com/en-us/windows/win32/debug/pe-format#optional-header-data-directories-image-only" target="_blank" rel="noopener">PE规范</a>，知道在第15个<code>Data Directory</code>里定义了<code>.net metadata</code>，也就是<code>cli header</code>。然而在上图显示的<code>.NET Metadata RVA</code>却是0x2008，这跟下面<code>cli header</code>的首地址0x208相差不少！而且乍一看还搞不懂它们间的换算关系（既不是去掉高位，也不是低位取整，而是中间少个0 😂）</p>
+<p>这个问题很奇怪，怪在为什么<code>Data Directory</code>里要存一个<code>RVA</code>而不是<code>FilePointer</code>？但实际上又并不怪，因为<code>PE文件</code>的本来用途就是Windows上的可执行文件容器，当它运行时，是几乎原封不动的将磁盘文件映射到内存中（除了对<code>Section</code>的位置做一些挪动），加载器或运行时要找某个<code>Data Directory</code>时，在映射好的内存中去找即可，而在内存中定位自然以<code>RVA</code>最为直接。</p>
+<p>但是做为一个<code>.net assembly</code>，它并不是传统的可执行文件，也就是说将磁盘文件直接映射到内存是没意义的（因为映射后的内存里并没有可执行的机器码），却又要“借壳”<code>PE文件格式</code>，所以要在它当中寻找某个<code>Data Directory</code>时，内存中无迹可寻，<code>RVA</code>无法使用，必须找到一个关系，将它换算成在文件中的偏移量。这个换算关系的重点，就是要知道一个<code>Section</code>（准确点说就是这个<code>Data Directory</code>所属的<code>Section</code>）在文件中的偏移和在内存中的偏移，把这个<code>差值</code>加到<code>Data Directory</code>的<code>RVA</code>上，就得到它在文件里的偏移了。</p>
+<p>查看这几个<code>Section</code>的内容：</p>
+<img src="/2020/02/25/mono源代码学习（二）pe文件结构/section.jpg">
+<p>每个<code>Section</code>都有<code>VirtualAddress</code>和<code>VirtualSize</code>，而且绝不重叠，通过遍历区间与<code>RVA</code>比较，就可以确定它落在哪个<code>Section</code>中。然后用相应的<code>PointerToRawData</code>来减<code>VirtualAddress</code>，再加上<code>RVA</code>，就得到此<code>Data Directory</code>的“FilePointer”了。</p>
+<p>上例中，0x2008+(0x200-0x2000) = 0x208， 正好就是<code>cli header</code>在文件中的起始位置 😆</p>
+</li>
+</ol>
+<p>想通这个关系后，我常舒一口气。但又觉得这只是自己的推测，究竟是否真的如此呢？要验证，当然是调试mono源码，看它加载一个assembly时的处理逻辑了：</p>
+<p>首先跟踪到这里，刚要加载cli_header，传递的正是<code>datadir.pe_cli_header.rva</code>=0x2008</p>
+<img src="/2020/02/25/mono源代码学习（二）pe文件结构/load_cli_header.jpg">
+<br>
+<p>再跟进去一看：</p>
+<img src="/2020/02/25/mono源代码学习（二）pe文件结构/mono_cli_rva_image_map.jpg">
+<p>确实如上所料：</p>
+<ul>
+<li>for循环是在确定区间</li>
+<li>找到section后，两个地址相减加到rva上</li>
+</ul>
+</div><div class="tags"><a href="/tags/mono/">mono</a><a href="/tags/pe/">pe</a></div><div class="post-nav"><a class="next" href="/2020/02/21/SkiaImageSource在图片尺寸上也犯了和Xamarin-iOS一样的问题/">SkiaImageSource在图片尺寸上也犯了和Xamarin.iOS一样的问题</a></div><div id="container"></div><link rel="stylesheet" href="/css/default.css?v=0.0.0"><script src="/js/gitment.browser.js?v=0.0.0"></script><script>var gitment = new Gitment({
+  id: 'mono源代码学习（二） pe文件结构' ,
+  owner: 'fatfatson',
+  repo: 'fatfatson.github.io',
+  oauth: {
+    client_id: '21dfc5a25075513e4074',
+    client_secret: 'f135caea0f4ced4bde6859f57e2537e9c239fd25',
+  },
+})
+gitment.render('container')
+</script></div></div></div><div class="pure-u-1-4 hidden_mid_and_down"><div id="sidebar"><div class="widget"><form class="search-form" action="//www.google.com/search" method="get" accept-charset="utf-8" target="_blank"><input type="text" name="q" maxlength="20" placeholder="Search"><input type="hidden" name="sitesearch" value="http://fatfatson.github.io"></form></div><div class="widget"><div class="widget-title"><i class="fa fa-folder-o"> 分类</i></div></div><div class="widget"><div class="widget-title"><i class="fa fa-star-o"> 标签</i></div><div class="tagcloud"><a href="/tags/docker/" style="font-size: 15px;">docker</a> <a href="/tags/docker-machine/" style="font-size: 15px;">docker machine</a> <a href="/tags/openssl/" style="font-size: 15px;">openssl</a> <a href="/tags/SkiaSharp/" style="font-size: 15px;">SkiaSharp</a> <a href="/tags/xamarin/" style="font-size: 15px;">xamarin</a> <a href="/tags/c/" style="font-size: 15px;">c#</a> <a href="/tags/exsi/" style="font-size: 15px;">exsi</a> <a href="/tags/vsphere/" style="font-size: 15px;">vsphere</a> <a href="/tags/coreos/" style="font-size: 15px;">coreos</a> <a href="/tags/blog/" style="font-size: 15px;">blog</a> <a href="/tags/hexo/" style="font-size: 15px;">hexo</a> <a href="/tags/gitment/" style="font-size: 15px;">gitment</a> <a href="/tags/macos/" style="font-size: 15px;">macos</a> <a href="/tags/PATH/" style="font-size: 15px;">PATH</a> <a href="/tags/minikube/" style="font-size: 15px;">minikube</a> <a href="/tags/k8s/" style="font-size: 15px;">k8s</a> <a href="/tags/maven/" style="font-size: 15px;">maven</a> <a href="/tags/grpc/" style="font-size: 15px;">grpc</a> <a href="/tags/kotlin/" style="font-size: 15px;">kotlin</a> <a href="/tags/mono/" style="font-size: 15px;">mono</a> <a href="/tags/gc/" style="font-size: 15px;">gc</a> <a href="/tags/mvc/" style="font-size: 15px;">mvc</a> <a href="/tags/mvp/" style="font-size: 15px;">mvp</a> <a href="/tags/mvvm/" style="font-size: 15px;">mvvm</a> <a href="/tags/pe/" style="font-size: 15px;">pe</a> <a href="/tags/ca/" style="font-size: 15px;">ca</a> <a href="/tags/cert/" style="font-size: 15px;">cert</a> <a href="/tags/sign/" style="font-size: 15px;">sign</a> <a href="/tags/tmux/" style="font-size: 15px;">tmux</a> <a href="/tags/shell/" style="font-size: 15px;">shell</a> <a href="/tags/wsl/" style="font-size: 15px;">wsl</a> <a href="/tags/win10/" style="font-size: 15px;">win10</a> <a href="/tags/yaml/" style="font-size: 15px;">yaml</a> <a href="/tags/samba/" style="font-size: 15px;">samba</a> <a href="/tags/nodejs/" style="font-size: 15px;">nodejs</a> <a href="/tags/xcode/" style="font-size: 15px;">xcode</a> <a href="/tags/hackintosh/" style="font-size: 15px;">hackintosh</a></div></div><div class="widget"><div class="widget-title"><i class="fa fa-file-o"> 最近文章</i></div><ul class="post-list"><li class="post-list-item"><a class="post-list-link" href="/2020/02/25/mono源代码学习（二）pe文件结构/">mono源代码学习（二） pe文件结构</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/21/SkiaImageSource在图片尺寸上也犯了和Xamarin-iOS一样的问题/">SkiaImageSource在图片尺寸上也犯了和Xamarin.iOS一样的问题</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/18/macos上PATH环境变量的来源/">macos上PATH环境变量的来源</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/18/mono源代码学习（一）/">mono源代码学习（一）</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/15/C-里可空类型-Nullable-T-的特殊处理/">C#里可空类型(Nullable<t>)的特殊性</t></a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/11/mono和.net core在gc上的区别/">mono和.net core在gc上的区别</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/09/一个莫名其妙的yml-lint问题排查/">hexo换render加emoji兼排查一个莫名其妙的vscode-yml-lint问题</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/gitment的两个问题备忘/">gitment的两个问题备忘</a></li><li class="post-list-item"><a class="post-list-link" href="/2020/02/08/给xcode10-2装上iossdk13-2/">给xcode10.2装上iossdk13.2</a></li><li class="post-list-item"><a class="post-list-link" href="/2019/08/11/tmux内联使用方法/">tmux内联使用方法</a></li></ul></div></div></div><div class="pure-u-1 pure-u-md-3-4"><div id="footer">Copyright © 2020 <a href="/." rel="nofollow">把问题都记下来.</a> Powered by<a rel="nofollow" target="_blank" href="https://hexo.io"> Hexo.</a><a rel="nofollow" target="_blank" href="https://github.com/tufu9441/maupassant-hexo"> Theme</a> by<a rel="nofollow" target="_blank" href="https://github.com/pagecho"> Cho.</a></div></div></div><a class="show" id="rocket" href="#top"></a><script type="text/javascript" src="/js/totop.js?v=0.0.0" async></script><script type="text/javascript" src="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js" async></script><script type="text/javascript" src="/js/fancybox.js?v=0.0.0" async></script><link rel="stylesheet" type="text/css" href="//lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css"><script type="text/javascript" src="/js/codeblock-resizer.js?v=0.0.0"></script><script type="text/javascript" src="/js/smartresize.js?v=0.0.0"></script><script src="/js/hexo_resize_image.js?v=0.0.0"></script></div></body></html>
