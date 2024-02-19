@@ -4003,8 +4003,8 @@ var egret;
 //  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 //////////////////////////////////////////////////////////////////////////////////////
-global.DEBUG = true;
-global.RELEASE = false;
+global.DEBUG = false;
+global.RELEASE = true;
 var egret;
 (function (egret) {
     /**
