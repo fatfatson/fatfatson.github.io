@@ -1,0 +1,155 @@
+{
+  "resources": [
+    {
+      "name": "1024c",
+      "type": "image",
+      "url": "assets/1024c.png"
+    },
+    {
+      "name": "1024j",
+      "type": "image",
+      "url": "assets/1024j.png"
+    },
+    {
+      "name": "128c",
+      "type": "image",
+      "url": "assets/128c.png"
+    },
+    {
+      "name": "128j",
+      "type": "image",
+      "url": "assets/128j.png"
+    },
+    {
+      "name": "16c",
+      "type": "image",
+      "url": "assets/16c.png"
+    },
+    {
+      "name": "16j",
+      "type": "image",
+      "url": "assets/16j.png"
+    },
+    {
+      "name": "2048c",
+      "type": "image",
+      "url": "assets/2048c.png"
+    },
+    {
+      "name": "2048j",
+      "type": "image",
+      "url": "assets/2048j.png"
+    },
+    {
+      "name": "256c",
+      "type": "image",
+      "url": "assets/256c.png"
+    },
+    {
+      "name": "256j",
+      "type": "image",
+      "url": "assets/256j.png"
+    },
+    {
+      "name": "2c",
+      "type": "image",
+      "url": "assets/2c.png"
+    },
+    {
+      "name": "2j",
+      "type": "image",
+      "url": "assets/2j.png"
+    },
+    {
+      "name": "32c",
+      "type": "image",
+      "url": "assets/32c.png"
+    },
+    {
+      "name": "32j",
+      "type": "image",
+      "url": "assets/32j.png"
+    },
+    {
+      "name": "4c",
+      "type": "image",
+      "url": "assets/4c.png"
+    },
+    {
+      "name": "4j",
+      "type": "image",
+      "url": "assets/4j.png"
+    },
+    {
+      "name": "512c",
+      "type": "image",
+      "url": "assets/512c.png"
+    },
+    {
+      "name": "512j",
+      "type": "image",
+      "url": "assets/512j.png"
+    },
+    {
+      "name": "64c",
+      "type": "image",
+      "url": "assets/64c.png"
+    },
+    {
+      "name": "64j",
+      "type": "image",
+      "url": "assets/64j.png"
+    },
+    {
+      "name": "8c",
+      "type": "image",
+      "url": "assets/8c.png"
+    },
+    {
+      "name": "8j",
+      "type": "image",
+      "url": "assets/8j.png"
+    },
+    {
+      "name": "bkcn",
+      "type": "image",
+      "url": "assets/bkcn.png"
+    },
+    {
+      "name": "bkjp",
+      "type": "image",
+      "url": "assets/bkjp.png"
+    },
+    {
+      "name": "sound_bad",
+      "type": "sound",
+      "url": "assets/sound_bad.wav"
+    },
+    {
+      "name": "sound_good",
+      "type": "sound",
+      "url": "assets/sound_good.wav"
+    },
+    {
+      "name": "sound_over",
+      "type": "sound",
+      "url": "assets/sound_over.wav"
+    },
+    {
+      "name": "sound",
+      "type": "image",
+      "url": "assets/sound.png"
+    },
+    {
+      "name": "title",
+      "type": "image",
+      "url": "assets/title.jpg"
+    }
+  ],
+  "groups": [
+    {
+      "name": "all",
+      "keys": "1024c,1024j,128c,128j,16c,16j,2048c,2048j,256c,256j,2c,2j,32c,32j,4c,4j,512c,512j,64c,64j,8c,8j,bkcn,bkjp,sound_bad,sound_good,sound_over,sound,title"
+    }
+  ]
+}

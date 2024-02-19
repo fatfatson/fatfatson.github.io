@@ -1,0 +1,45 @@
+{
+	"resources": [
+		{
+			"name": "bkcn",
+			"type": "image",
+			"url": "assets/bkcn.png"
+		},
+		{
+			"name": "bkjp",
+			"type": "image",
+			"url": "assets/bkjp.png"
+		},
+		{
+			"name": "bktitle",
+			"type": "image",
+			"url": "assets/title.jpg"
+		},
+		{
+			"name": "bkmusic",
+			"type": "sound",
+			"url": "assets/bkmusic.mp3"
+		},
+		{
+			"name": "sound_over",
+			"type": "sound",
+			"url": "assets/sound_over.wav"
+		},
+		{
+			"name": "sound_good",
+			"type": "sound",
+			"url": "assets/sound_good.wav"
+		},
+		{
+			"name": "sound_bad",
+			"type": "sound",
+			"url": "assets/sound_bad.wav"
+		}
+	],
+	"groups": [
+		{
+			"name": "preload",
+			"keys": "sound_good,sound_bad,sound_over,bkcn,bkjp,bktitle"
+		}
+	]
+}
